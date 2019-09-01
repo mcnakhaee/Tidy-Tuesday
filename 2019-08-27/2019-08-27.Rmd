@@ -16,6 +16,8 @@ library(cowplot)
 library(tvthemes)
 
 ```
+## I used an additional dataset from data.world:
+https://data.world/data-society/the-simpsons-by-the-data/
 
 ```{r}
 
@@ -74,7 +76,7 @@ cut_labels <- c('5 - 5.5',
                 '9 - 9.5')
 
 
-simpsons_merged %>% 
+g <- simpsons_merged %>% 
   filter(guest_star %in% most_frequent_guest_stars,season.x != 'Movie',!is.na(imdb_rating)) %>% 
   
   mutate(season.x  = parse_number(season.x )) %>% 
@@ -101,7 +103,11 @@ simpsons_merged %>%
         plot.title = element_text( size = 18, face = "bold"),
         legend.title = element_text( size = 14, face = "bold")) +
   guides(size=FALSE,fill = guide_legend(override.aes = list(size = 5)))
-  
+
+
+
+ggsave('Plots/1.jpg',plot = g,height = 6, width = 12,dpi=1000)
+g
 
 ```
 ```{r fig.height = 6, fig.width = 10,dpi=1000}
@@ -119,7 +125,7 @@ arrows <- tibble(
 )
 
 
-simpsons_merged %>% 
+g <- simpsons_merged %>% 
   group_by(guest_star) %>% 
   summarize(avg_rating = mean(imdb_rating),
             avg_viewers = mean(us_viewers_in_millions),
@@ -136,17 +142,21 @@ simpsons_merged %>%
   scale_fill_manual(values = rev(simpsons_palette)) +
   
  geom_text(data = . %>% mutate(avg_viewers = avg_viewers+0.3),aes(label = avg_rating,y=avg_viewers),family = "Akbar")+
-      annotate("text", x = 16, y = 7, label = 'The lowest IMDB rating among\n all guest stars goes to "Lady Gaga"\n for "Lisa Goes Gaga" episode ', family = "Akbar", size = 5,vjust = 0.5,hjust = 0.6) +
+      annotate("text", x = 16, y = 7., label = 'The lowest IMDB rating goes to "Lady Gaga"\nfor playing  herself in the "Lisa Goes Gaga" episode ', family = "Akbar", size = 4.5,vjust = 0.5,hjust = 0.6) +
     geom_curve(data = arrows, aes(x = x1, y = y1, xend = x2, yend = y2),
              arrow = arrow(length = unit(0.07, "inch")), size = 1,
              color = "gray50", curvature = -0.2) +
 coord_flip() +
-      labs(y = "Average Number of Viewers in the US\n(in million)", x = NULL,
+      labs(y = "Average Number of Viewers in the US\n(in millions)", x = NULL,
          title = "Worst Rated Guest Stars in Simpsons and their Average Viewership") +
   theme_simpsons() +
   theme_minimal_grid(font_family = "Akbar") +
   theme(panel.grid.major = element_blank(),
         ) 
+
+
+ggsave('Plots/2.jpg',plot = g,height = 6, width = 10,dpi=1000)
+g
 
 ```
 
@@ -174,7 +184,7 @@ arrows_2 <- tibble(
   y2 = c(18)
 )
 
-simpsons_merged %>% 
+g <- simpsons_merged %>% 
   group_by(guest_star) %>% 
   summarize(avg_rating = mean(imdb_rating),
             avg_viewers = mean(us_viewers_in_millions),
@@ -199,11 +209,15 @@ simpsons_merged %>%
              arrow = arrow(length = unit(0.07, "inch")), size = 1,
              color = "gray50", curvature = 0.5) +
   coord_flip() +
-  labs(y = "Average Number of Viewers in the US\n(in million)", x = NULL,
+  labs(y = "Average Number of Viewers in the US\n(in millions)", x = NULL,
         title = "Top Rated Guest Stars in Simpsons and their Average Viewership") +
   coord_flip() +
   theme_simpsons() +
   theme_minimal_grid(font_family = "Akbar") +
   theme(panel.grid.major = element_blank()) 
+
+
+ggsave('Plots/3.jpg',plot = g,height = 6, width = 12,dpi=1000)
+g
 ```
 
