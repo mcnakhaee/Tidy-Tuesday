@@ -2,6 +2,10 @@
 title: "Simpsons Guest Stars"
 output: html_notebook
 ---
+## I borrowed a few tips from Amelia Barber. you can check her repo
+  https://github.com/ameliabedelia/tidy_tuesday
+I also used
+
 ```{r}
 remotes::install_git("https://git.rud.is/hrbrmstr/ggchicklet.git")
 
