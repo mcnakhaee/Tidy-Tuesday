@@ -5,11 +5,11 @@ My submissions for the weekly Tidy Tuesday project
 
 ### **Week 52 - Christmas Music Billboards**
 
-![](Week 52 - Christmas Music Billboards/Plots/00001d.png)
+![](/Week 52 - Christmas Music Billboards/Plots/00001d.png)
 
 ### Week 51 -Adoptable dogs
 
-![](Week 51 - Adoptable dogs/Plots/tags_Akbar.jpg)
+![](/Week 51 - Adoptable dogs/Plots/tags_Akbar.jpg)
 
 
 
