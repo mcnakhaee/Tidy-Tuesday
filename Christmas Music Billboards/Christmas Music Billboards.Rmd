@@ -1,0 +1,187 @@
+---
+title: "Christmas Music Bilboards"
+output: html_notebook
+---
+
+
+
+```{r message=FALSE,warning=FALSE}
+#devtools::install_github("hughjonesd/santoku")
+library(tidyverse)
+library(hrbrthemes)
+library(lubridate)
+library(santoku)
+
+```
+
+```{r}
+
+tuesdata <- tidytuesdayR::tt_load(2019, week = 52)
+christmas_lyrics <- tuesdata$christmas_lyrics
+christmas_songs <- tuesdata$christmas_songs
+
+christmas_colors <-
+  c(
+    '#F8B229',
+    '#FF3213',
+    '#CC231F',
+    '#BB201C',
+    '#00892A',
+    '#00792C',
+    '#003F2E',
+    '#C0C0C0'
+  )
+
+    
+
+```
+
+
+```{r fig.width = 15, fig.height = 12 }
+christmas_songs %>% 
+  group_by(song,year,month) %>% 
+  summarise(peak_position = min(peak_position)) %>% 
+  
+  ggplot(aes(year,song)) +
+    geom_tile(aes(fill= peak_position)) +
+theme_ipsum_tw() + 
+  theme(panel.grid.major = element_blank(),
+        panel.grid.minor = element_blank())
+```
+
+
+
+```{r fig.width = 28, fig.height = 30, dpi=1200}
+
+ranking_labels <- c('1-10','10-20','20-30','30-40','40-50','50-60','60-70','90-100')
+g <- christmas_songs %>%
+  mutate(christmas_period = ifelse(month == 12,
+                                   year + 1,
+                                   year)) %>%
+  filter(christmas_period != 1959) %>%
+  group_by(christmas_period) %>%
+  summarise(
+    top_song = str_wrap(song[which.min(week_position)], width = 15),
+    performer = str_wrap(performer[which.min(week_position)], width = 15),
+    peak_position = min(week_position),
+    weeks_on_chart = weeks_on_chart[which.min(week_position)]
+    
+  ) %>%
+  mutate(peak_position_d = chop(peak_position, breaks = seq(0, 100, 10))) %>%
+  ggplot() +
+  geom_rect(aes(
+    xmin = -4,
+    ymin = -4,
+    xmax = 4,
+    ymax = 4,
+    
+  ),
+  color = "gray80",
+  fill = 'white') +
+  
+  geom_rect(aes(
+    xmin = -4,
+    ymin = 2,
+    xmax = 4,
+    ymax = 4,
+    fill = peak_position_d
+  ),
+  
+  color = "white") +
+  
+  geom_text(
+    aes(label = christmas_period),
+    x = 0,
+    y = 3,
+    family = 'Montserrat',
+    color = "white",
+    size = 10
+  ) +
+  
+  geom_text(
+    aes(
+      label = str_wrap(top_song, width = 19),
+      x = 0,
+      y = 1
+    ),
+    hjust = 'middle',
+    size = 8,
+    vjust = 'top',
+    color = "gray20",
+    check_overlap = TRUE,
+    family = 'Montserrat'
+  ) +
+  geom_text(
+    aes(label = str_wrap(performer, width = 25)),
+    x = 0,
+    y = -1.5,
+    hjust =  'middle',
+    size = 5.5,
+    vjust = 'top',
+    color = "gray20",
+    family = 'Montserrat'
+  ) +
+  guides(fill = guide_legend(title.position = "top",override.aes = list(size = 15)
+                             )) +
+  
+  facet_wrap(~ christmas_period,
+             ncol = 6) +
+  
+  labs(title = "Singin' Around the Christmas Tree ",
+       subtitle = "Which songs were the most popular Christmas songs on the Bilboard's hot-100 list during Christmas?",
+       fill = "Position on Billboard's chart: ") +
+  scale_fill_manual(values = christmas_colors,labels =ranking_labels) +
+  theme_ft_rc() +
+  theme(
+    panel.grid.major = element_blank(),
+    panel.border = element_blank(),
+    axis.text.x = element_blank(),
+    axis.ticks.x = element_blank(),
+    axis.title.x = element_blank(),
+    axis.text.y = element_blank(),
+    axis.ticks.y = element_blank(),
+    axis.title.y = element_blank(),
+    legend.title = element_text(
+      family = 'Montserrat',
+      face = "bold",
+      size = 25,
+      hjust = 0.5,
+      margin = margin(0, 0, 20, 0),
+    ),
+    plot.title = element_text(
+      family = 'Montserrat',
+      face = "bold",
+      size = 50,
+      margin = margin(0, 0, 20, 0),
+      hjust = 0.5
+    ),
+    plot.subtitle = element_text(
+      family = 'Montserrat',
+      size = 30,
+      margin = margin(0, 0, 60, 0),
+      hjust = 0.5
+    ),
+    strip.text = element_blank(),
+      legend.position = 'bottom',
+    legend.text = element_text(     
+      family = 'Montserrat',
+      size = 20,
+      margin = margin(0, 20, 0, 0)
+      ),
+
+    legend.text.align = 0,
+     legend.direction = "horizontal",
+    panel.spacing = unit(2, "points")
+  )
+
+g
+ggsave("filename_3.jpg", 
+ plot = g, # or give ggplot object name as in myPlot,
+ width = 30, height = 30, 
+ units = "in", # other options c("in", "cm", "mm"), 
+ dpi = 900)
+
+
+```
+
+
