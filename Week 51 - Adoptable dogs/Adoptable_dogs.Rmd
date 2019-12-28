@@ -1,0 +1,191 @@
+---
+title: "Adoptable dogs"
+output: html_notebook
+---
+
+
+
+```{r}
+library(tidyverse)
+library(tidytext)
+library(paletteer)
+library(wordcloud)
+library(ggthemes)
+library(hrbrthemes)
+library(extrafont)
+library(bbplot)
+#remotes::install_bitbucket("hrbrmstr/hrbrthemes")
+devtools::install_github('bbc/bbplot')
+```
+```{r}
+font_import()
+
+loadfonts(device = 'win')
+
+```
+
+
+```{r}
+dog_moves <- readr::read_csv('https://raw.githubusercontent.com/rfordatascience/tidytuesday/master/data/2019/2019-12-17/dog_moves.csv')
+dog_travel <- readr::read_csv('https://raw.githubusercontent.com/rfordatascience/tidytuesday/master/data/2019/2019-12-17/dog_travel.csv')
+dog_descriptions <- readr::read_csv('https://raw.githubusercontent.com/rfordatascience/tidytuesday/master/data/2019/2019-12-17/dog_descriptions.csv')
+
+
+attach(dog_descriptions)
+head(dog_descriptions)
+```
+
+```{r}
+
+
+dog_descriptions <- dog_descriptions %>%
+  
+  filter(type == 'Dog', contact_country == 'US') %>%
+  
+  select(-status,
+         -type,
+         -accessed,
+         -stateQ,
+         contact_country,
+         -contact_zip,
+         -url)
+```
+
+
+```{r}
+
+data(stop_words)
+dog_descriptions_tokens <- dog_descriptions %>%
+  select(sex, description) %>%
+  unnest_tokens(word, description) %>%
+  anti_join(stop_words)
+```
+
+```{r}
+dog_descriptions %>% 
+  select(sex,tags) %>%
+  filter(!is.na(tags)) %>%
+  count(sex)
+```
+
+
+
+```{r fig.height = 17, fig.width = 7,dpi=900}
+g <- dog_descriptions %>%
+  select(sex, tags) %>%
+  filter(!is.na(tags)) %>%
+  unnest_tokens(word, tags) %>%
+  anti_join(stop_words) %>%
+  
+  count(word, sex, sort = TRUE) %>%
+  
+  filter(n > 40) %>%
+  mutate(word = fc      t_reorder(word, n),
+         n = n * ifelse(sex == 'Male',-1, 1)) %>%
+  ggplot(aes(
+    word, n, fill = sex)) +
+  geom_col() +
+  geom_text(
+                          data = . %>% mutate(position = ifelse(n<0,n -100, n + 100) ,n_plus = abs(n)),
+                          aes(label = n_plus, y = position),
+                          family = "Akbar",
+                          size = 3,
+                          color = 'black'
+                        ) +
+  coord_flip() +
+  scale_fill_manual(name = "Sex:", values = c('#DA4167', '#75B9BE')) +
+  
+  theme_tufte() +
+  labs(title =  'Most Popular Tags for Describing Adoptable Dogs',
+       subtitle = 'Do we use different tags for male and female dogs?') + 
+  
+  theme(
+    panel.grid.major = element_blank(),
+    plot.title = element_text(size = 18, face = "bold",family = 'Akbar'),
+    plot.subtitle = element_text(size = 12, face = "bold",family = 'Akbar'),
+  axis.text.y = element_text(size = 11, face = "bold",family = 'Akbar'),
+  axis.title.y = element_text(size = 24, face = "bold",family = 'Akbar'),
+
+    axis.text.x = element_blank(),
+  axis.ticks.x = element_blank(),
+axis.title.x = element_blank(),
+
+    legend.title = element_text(size = 16, face = "bold",family = 'Akbar'),
+legend.text = element_text(size = 11, face = "bold",family = 'Akbar')
+  ) 
+
+g
+ggsave(
+  'tags_Akbar.jpg',
+  plot = g,
+  height = 8,
+  width = 10,
+  dpi = 1000
+)
+```
+
+
+```{r}
+dog_descriptions_tokens %>% 
+  count(word,sex,sort = TRUE) %>% 
+  filter(n >600)
+```
+```{r}
+
+dog_descriptions_tokens %>%
+  inner_join(get_sentiments("nrc")) %>%
+  count(sex, sentiment, sort = TRUE) %>%
+  filter(n > 50) %>%
+  mutate(sentiment = fct_reorder(sentiment, n),
+         n = n * ifelse(sex == 'Male', -1, 1)) %>%
+
+  ggplot(aes(sentiment, n, fill = sex)) +
+  
+
+  geom_col(alpha = 0.7) +
+      geom_text(
+                          data = . %>% mutate(position = ifelse(n<0,n -170, n + 170) ,n_plus = abs(n)),
+                          aes(label = n_plus, y = position),
+                          family = "Akbar",
+                          size = 2
+                        ) +
+  coord_flip() +
+  
+  scale_fill_manual(name = "Sex:", values = c('#DA4167', '#75B9BE')) +
+  
+  theme_tufte() +
+  labs(title =  'Most Popular Tags for Describing Adoptable Dogs',
+       subtitle = 'Do we use different tags for male and female dogs?') + 
+  
+  theme(
+    panel.grid.major = element_blank(),
+    plot.title = element_text(size = 18, face = "bold",family = 'Garamond'),
+    plot.subtitle = element_text(size = 12, face = "bold",family = 'Garamond'),
+  axis.text.y = element_text(size = 11, face = "bold",family = 'Garamond'),
+    legend.title = element_text(size = 14, face = "bold",family = 'Garamond')
+  ) 
+
+```
+```{r fig.height=7,fig.width=7}
+library(reshape2)
+
+cc <- dog_descriptions_tokens %>%
+  select(-sex) %>%
+  inner_join(get_sentiments("bing")) %>%
+  count(word, sentiment, sort = TRUE) %>%
+  acast(word ~ sentiment, value.var = "n", fill = 0) %>%
+  comparison.cloud(title.bg.colors = c("gray90","gray90"), title.colors = c("#EDB6A3", "#69995D"), colors = c("#EDB6A3", "#69995D"),
+                   max.words = 150
+                   
+                   ) 
+cc
+
+ggsave(
+  'cc_.jpg',
+  plot = cc,
+  height = 7,
+  width = 7,
+  dpi = 1000
+)
+```
+
