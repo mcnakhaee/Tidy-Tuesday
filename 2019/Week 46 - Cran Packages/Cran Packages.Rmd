@@ -1,0 +1,157 @@
+---
+title: "R Notebook"
+output: html_notebook
+---
+
+
+```{r}
+
+tuesdata <- tidytuesdayR::tt_load(2019, week = 46)
+
+cran_code <- tuesdata$loc_cran_packages
+
+head(cran_code)
+```
+
+```{r}
+#devtools::install_github("hrbrmstr/waffle")
+#remotes::install_github("wilkelab/ggridges")
+
+library(tidyverse)
+library(hrbrthemes)
+library(ggridges)
+library(gridExtra)
+library(ggthemes)
+library(waffle)
+
+
+```
+
+```{r fig.height=15, fig.width=15,dpi=1000}
+
+popular_languages <- c(
+  'Java', 'C', 'Python', 'C++', 'C#',  'JavaScript', 'PHP', 'SQL', 'Assembly', 'R'
+)
+
+popular_languages <- c(
+  'Java', 'C', 'Python', 'C++', 'C#', 'R'
+)
+
+```
+
+```{r fig.height=15, fig.width=15}
+g1 <- cran_code %>%
+  filter(language %in% popular_languages) %>%
+  mutate(
+    group = language,
+    total = comment + blank + code,
+    perc_code = code / total,
+    perc_comment = comment / total,
+    perc_blank = blank / total
+  ) %>%
+  group_by(group) %>%
+  summarize(
+    `Comment` = mean(perc_comment),
+    `Code` = mean(perc_code),
+    `Blank` = mean(perc_blank)
+  ) %>%
+  pivot_longer(-group, names_to = 'type', values_to = 'perc') %>%
+  mutate(
+    perc_ = round( 200 * perc),
+    type = fct_reorder(type, perc_)) %>% 
+  mutate(perc_ = case_when(
+    group == 'C' & type == 'Code'~ perc_ -1 ,
+     group == 'C++' & type == 'Code'~ perc_ -1,
+      TRUE ~ perc_)) %>% 
+    
+  ggplot(aes(values = perc_, fill = type)) +
+  geom_waffle(
+    color = 'white',
+    size = 0.1,
+    n_rows = 10,
+    flip = TRUE,
+    radius = grid::unit(0.5, "npc")
+  ) +
+  
+  
+  facet_wrap( ~ group, nrow = 2, strip.position = "bottom") +
+  scale_x_discrete() + 
+  scale_fill_manual(values = c('#ffcc00','#ff6666','#66cccc')) +
+  theme_enhance_waffle() +
+labs(title = "The Average Number of Lines of Codefor Programming Languages Used in CRAN Packages",
+       fill = " ")  + 
+  theme_pander() +
+  theme_void() +
+  coord_fixed() +
+  theme(
+    legend.position = 'bottom',
+             legend.direction = "horizontal",
+     strip.text =  element_text(
+      family = 'Montserrat',
+      face = "bold",
+      size = 15,
+      hjust = 0.5) ,
+         plot.title = element_text(
+      family = 'Montserrat',
+      face = "bold",
+      size = 22,
+      margin = margin(0, 0, 20, 20),
+      hjust = 0.5),
+     legend.title = element_text(     
+      family = 'Montserrat',
+      size = 15,
+      margin = margin(0, 20, 0, 0)
+      ),
+         legend.text = element_text(     
+      family = 'Montserrat',
+      size = 15,
+      margin = margin(0, 20, 0, 0)
+      ),
+     panel.spacing = unit(2, "points"),
+    )
+     
+g1  
+
+ggsave('cran_pkg.png',g1,
+        width = 15, height = 10, 
+ dpi = 900)
+```
+
+
+
+
+
+
+
+
+
+```{r fig.height=15, fig.width=15}
+data <- cran_code %>%
+  
+  filter(language %in% popular_languages) %>%
+  mutate(
+    total = comment + blank + code,
+    perc_code = code / total,
+    perc_comment = comment / total,
+    perc_blank = blank / total
+  ) %>%
+  select(language, perc_code, perc_comment, perc_blank) %>%
+  pivot_longer(-language, names_to = 'type', values_to = 'perc')
+
+
+g2 <- data %>%
+  ggplot(aes(x = perc , y = language, fill = type)) +
+  geom_density_ridges() +
+  facet_wrap(. ~ type, scales = "free_x", nrow = 3) +
+  scale_fill_manual(values = c('#ffcc00', '#ff6666', '#66cccc')) +
+  scale_x_continuous(breaks = c(0, 0.2, 0.4, 0.6, 0.8, 1),
+                     limits = c(0, 1)) +
+  theme_tufte() 
+g2
+
+
+
+
+```
+
+
