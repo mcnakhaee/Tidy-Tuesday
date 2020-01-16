@@ -3,17 +3,35 @@ My submissions for the weekly Tidy Tuesday project
 
 
 
+
+
+## 2020 Submissions
+
+### Week 3 - Passwords
+
+![](https://github.com/mcnakhaee/Tidy-Tuesday/blob/master/2020/Week%203%20-%20Passwords/password_quality.jpg)
+
+
+
+## 2019 Submissions
+
+
+
 ### **Week 52 - Christmas Music Billboards**
 
 ![](https://github.com/mcnakhaee/Tidy-Tuesday/blob/master/2019/Week%2052%20-%20Christmas%20Music%20Billboards/Plots/00001d.png)
 
 ### Week 51 -Adoptable dogs
 
-![](/https://github.com/mcnakhaee/Tidy-Tuesday/blob/master/2019/Week%2051%20-%20Adoptable%20dogs/Plots/tags_Akbar.jpg)
+![](https://github.com/mcnakhaee/Tidy-Tuesday/blob/master/2019/Week%2051%20-%20Adoptable%20dogs/Plots/tags_Akbar.jpg)
 
-![](/https://github.com/mcnakhaee/Tidy-Tuesday/blob/master/2019/Week%2051%20-%20Adoptable%20dogs/Plots/ccc.png)
+![](https://github.com/mcnakhaee/Tidy-Tuesday/blob/master/2019/Week%2051%20-%20Adoptable%20dogs/Plots/ccc.png)
 
 
+
+### Week 46 - Cran Packages
+
+![](https://github.com/mcnakhaee/Tidy-Tuesday/blob/master/2019/Week%2046%20-%20Cran%20Packages/cran_pkg.png)
 
 
 
