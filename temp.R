@@ -274,3 +274,73 @@ data %>%
 
 ---------------------------------------------------------------
   --------------------------------------------------------
+  
+  
+  passwords_letters  %>%
+  mutate(from = let1, to = let2) %>%
+  rbind(passwords_letters  %>%
+          mutate(from = let2, to = let3)) %>%
+  rbind(passwords_letters  %>%
+          mutate(from = let3, to = let4)) %>%
+  rbind(passwords_letters  %>%
+          mutate(from = let4, to = let5)) %>%
+  rbind(passwords_letters  %>%
+          mutate(from = let5, to = let6)) %>%
+  rbind(passwords_letters  %>%
+          mutate(from = let6, to = let7)) %>%
+  rbind(passwords_letters  %>%
+          mutate(from = let7, to = let8)) %>%
+  rbind(passwords_letters  %>%
+          mutate(from = let8, to = let9)) %>%
+  group_by(from, to) %>%
+  summarize(n_ = n()/100,
+            avg_strength = mean(strength)) %>%
+  select(from, to, n_, avg_strength) %>%
+  graph_from_data_frame() %>%
+  create_layout(layout = "circle") %>%
+  ggraph() +
+  #geom_edge_fan() +
+  geom_edge_link(aes(alpha = n_)) + 
+  #geom_edge_arc()+
+  geom_node_point(aes(color = name %in% letters)) +
+  geom_node_text(aes(label = name), repel = TRUE, size = 10) +
+  #geom_edge_loop(aes(alpha = n_),direction = 180,span =90) +
+  theme_void()
+
+
+
+
+#count(letters,let,sort = TRUE)
+group_by(letters,let) %>% 
+  summarize(n_ = n(), 
+            lettt = let[which.max(n_)])%>% 
+  arrange(desc(n_),desc(letters),desc(let),)
+
+
+passwords_letters  %>% 
+  mutate(from = let2,to = let3) %>% 
+  group_by(from,to) %>% 
+  summarize(n = n(),
+            avg_strength = mean(strength)) %>% 
+  select(from,to,n,avg_strength) %>% 
+  graph_from_data_frame() %>% 
+  #mutate(is_number = if_else(name %in% letters, 0,1)) %>%     
+  create_layout( layout = "star") %>% 
+  
+  ggraph() +
+  #geom_edge_link() + 
+  geom_edge_fan()+
+  geom_node_point(aes(color = name %in% letters )) +
+  geom_node_text(aes(label = name),repel = TRUE,size = 5) +
+  geom_edge_loop()
+
+
+g1 <- passwords_letters  %>% 
+  mutate(from = let1,to = let2) %>% 
+  select(from,to) %>% 
+  graph_from_data_frame() %>% 
+  create_layout( layout = "fr") %>% 
+  ggraph() +
+  geom_edge_link() + 
+  geom_node_point() +
+  geom_node_text(aes(label = name),repel = TRUE,size = 5) 
