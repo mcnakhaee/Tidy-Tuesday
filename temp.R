@@ -344,3 +344,134 @@ g1 <- passwords_letters  %>%
   geom_edge_link() + 
   geom_node_point() +
   geom_node_text(aes(label = name),repel = TRUE,size = 5) 
+
+
+
+
+
+
+
+
+
+embedding <- as_tibble(spotify_songs_umap_normed$layout)
+colnames(embedding) <- c('element_1','element_2')
+embedding$track_name <-tmp$sd 
+embedding$playlist_genre <-spotify_songs$playlist_genre 
+embedding$playlist_subgenre <- spotify_songs$playlist_subgenre
+embedding$track_artist <- spotify_songs$track_artist
+embedding$track_popularity <- spotify_songs$track_popularity
+embedding <- embedding %>% 
+  
+  
+  
+  clust <- kmeans(normed_input, 5)
+library(widyr)
+library(janeaustenr)
+library(dplyr)
+library(tidytext)
+library(text2vec)
+library(ggraph)
+library(tidygraph)
+library(igraph)
+
+# Comparing Jane Austen novels
+austen_words <- austen_books() %>%
+  unnest_tokens(word, text) %>%
+  anti_join(stop_words, by = "word") %>%
+  count(book, word) %>%
+  ungroup()
+
+# closest books to each other
+closest <- austen_words %>%
+  pairwise_similarity(book, word, n) %>%
+  arrange(desc(similarity))
+
+closest
+
+closest %>%
+  filter(item1 == "Emma")
+
+simmm <- normed_input %>%  
+  slice(1:100) %>% 
+  as.matrix() %>% 
+  sim2
+simmm 0
+
+g <- graph_from_adjacency_matrix(simmm, mode = "undirected", weighted = TRUE,
+                                 diag = FALSE)
+simmm <- sim2(as.matrix(normed_input)
+              
+              
+              as.data.frame(simmm) %>% dim()
+              spotify_songs %>% 
+                pairwise_similarity(track_name,liveness,)
+              g 
+              lay = create_layout(g, layout = "fr")
+              
+              # plot with ggraph
+              ggraph(lay) + 
+                geom_edge_link(aes(edge_width = weight )) + 
+                geom_node_point() +
+                geom_edge_density()+
+                #geom_node_text(aes(label = name),repel = TRUE,size = 5) +
+                theme_graph() 
+              
+              
+              
+              
+              
+              embedding <- spotify_songs_umap_normed$layout %>%
+                as_tibble() %>%
+                dplyr::rename(element_1 = V1, element_2 = V2) %>%
+                mutate(
+                  track_name = spotify_songs$shorter_names ,
+                  playlist_genre =  spotify_songs$playlist_genre,
+                  playlist_subgenre = spotify_songs$playlist_subgenre,
+                  track_artist = spotify_songs$track_artist,
+                  track_popularity = spotify_songs$track_popularity ,
+                  selected_artist = if_else(
+                    track_artist %in% selected_artists,
+                    as.character(track_artist),
+                    ""
+                  ),
+                  point_size_selected_artist = if_else(track_artist %in% selected_artists,
+                                                       1,
+                                                       0.7),
+                  
+                  
+                  track_name_selected_artist = if_else(track_artist %in% selected_artists,
+                                                       track_name,
+                                                       NULL),
+                  genre_selected_artist = if_else(track_artist %in% selected_artists,
+                                                  playlist_genre,
+                                                  NULL)) %>%
+                distinct(track_name, .keep_all = TRUE)
+              write_csv(embedding,'embedding.csv')
+              embedding %>%
+                slice(1000:2999) %>% 
+                ggplot(aes(x = element_1, y = element_2 , color = selected_artist ,size = point_size_selected_artist,
+                           shape = playlist_genre )) +
+                geom_point(alpha = 0.9) +
+                gghighlight(selected_artist != "",unhighlighted_params = list(alpha = 0.2, color = 'gray')) +
+                scale_color_ipsum() +
+                #scale_color_gradient2_tableau() +
+                #scale_shape_few() +
+                geom_text_repel(aes(label = track_name_selected_artist),size = 3, family = 'Montserrat',
+                                point.padding = 1.2,
+                                box.padding = .3,
+                                force = 1,
+                                min.segment.length = 0) +
+                theme_void() +
+                theme_ipsum_tw() +
+                theme_modern_rc() + 
+                theme(legend.position = 'top',
+                      strip.background = element_blank(),
+                      axis.ticks.x = element_blank() , 
+                      axis.ticks.y = element_blank(),
+                      panel.grid.major.x =element_blank(),
+                      panel.grid.major.y =element_blank(),
+                      panel.grid.minor =element_blank(),
+                      axis.text.x.bottom  = element_blank(),
+                      axis.text.y.left = element_blank()) +
+                guides( size = FALSE,
+                        color = guide_legend(override.aes = list(alpha = 0.9,size = 5)))

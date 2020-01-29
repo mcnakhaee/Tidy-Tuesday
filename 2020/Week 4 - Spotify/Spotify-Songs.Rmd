@@ -1,0 +1,150 @@
+---
+title: "R Notebook"
+output: html_notebook
+---
+
+
+
+```{r}
+spotify_songs <- readr::read_csv('https://raw.githubusercontent.com/rfordatascience/tidytuesday/master/data/2020/2020-01-21/spotify_songs.csv')
+
+```
+
+```{r}
+library(umap)
+library(tidyverse)
+library(tidymodels)
+library(gghighlight)
+library(hrbrthemes)
+library(ggthemes)
+library(lubridate)
+library(ggrepel)
+```
+
+```{r}
+head(spotify_songs)
+names(spotify_songs)
+```
+```{r}
+spotify_songs <- spotify_songs %>%  
+  dplyr::rowwise() %>% 
+  mutate(shorter_names = unlist(str_split(track_name,'-'))[1]) 
+```
+
+```{r}
+labels <- spotify_songs$track_name
+input_data <- spotify_songs[12:22]
+rc <- recipe(x = input_data)
+normed_input <-rc %>% 
+  step_normalize(everything()) %>% 
+  prep() %>% 
+  juice()
+
+
+spotify_songs_umap_normed <- umap(normed_input)
+
+
+selected_artists <- c('Queen','Drake','Rihanna','Taylor Swift','Eminem','Snoop Dogg','Katy Perry','The Beatles')
+
+
+embedding %>%
+  #slice(1000:2999) %>% 
+  filter(!is.na(track_name_selected_artist)) %>% 
+  arrange(desc(track_popularity))
+
+```
+
+```{r fig.width=40,fig.height= 35}
+selected_artists <- c('Queen','Drake','Rihanna','Taylor Swift','Eminem','Snoop Dogg','Katy Perry','The Beatles')
+
+embedding %>% 
+  filter(!is.na(track_name_selected_artist)) %>% 
+  dim()
+
+embedding <- spotify_songs_umap_normed$layout %>%
+  as_tibble() %>%
+  dplyr::rename(element_1 = V1, element_2 = V2) %>%
+  mutate(
+    track_name = spotify_songs$shorter_names ,
+    playlist_genre =  spotify_songs$playlist_genre,
+    playlist_subgenre = spotify_songs$playlist_subgenre,
+    track_artist = spotify_songs$track_artist,
+    track_popularity = spotify_songs$track_popularity ,
+    selected_artist = if_else(
+      track_artist %in% selected_artists,
+      as.character(track_artist),
+      ""
+    ),
+    point_size_selected_artist = if_else(track_artist %in% selected_artists,
+                                         0.5,
+                                         0.1),
+    
+    
+    track_name_selected_artist = if_else(track_artist %in% selected_artists,
+                                         track_name,
+                                         NULL),
+    genre_selected_artist = if_else(track_artist %in% selected_artists,
+                                         playlist_genre,
+                                         NULL),
+    popular_tracks_selected_artist = if_else(track_artist %in% selected_artists & track_popularity > 70,
+                                         track_name,
+                                         NULL)) %>%
+  distinct(track_name, .keep_all = TRUE)
+embedding %>%
+  ggplot(aes(x = element_1, y = element_2 ,color = selected_artist )) +
+  geom_point(aes(size = point_size_selected_artist)) +
+  gghighlight(selected_artist != "",unhighlighted_params = list(alpha = 0.2, color = '#FFE66D')) +
+  scale_color_manual(values = c('#5BC0EB','#FDE74C','#7FB800','#E55934','#FA7921','#1A936F' ,'#F0A6CA','#B8BEDD'))+
+  #scale_shape_manual(values=c(4, 21, 22,23,24,25))+
+  guides( size = FALSE,
+    color = guide_legend(override.aes = list(alpha = 0.9,size = 12))) +
+    geom_text_repel(aes(label = popular_tracks_selected_artist),size = 7, family = 'Montserrat',
+    point.padding = 4.2,
+    box.padding = .5,
+    force = 1,
+    min.segment.length = 0.1) +
+  labs(x ="", y = "" ,
+       title = 'The Map of Spotify Songs\n',
+       subtitle = 'Using the UMAP algorithm, the audio features of each song are mapped into a 2D space.\n Each point represents a unique song and the most popular songs of several known artist are also shown\n',
+       color = '') +
+  theme_modern_rc() + 
+  theme(legend.position = 'top',
+        legend.text   = element_text(size = 24),
+      plot.title = element_text(
+      family = 'Montserrat',
+      face = "bold",
+      size = 50,
+      hjust = 0.5,
+     color = '#FFE66D'),
+      plot.subtitle = element_text(
+      family = 'Montserrat',
+      size = 30,
+      hjust = 0.5,),
+        strip.background = element_blank(),
+        axis.ticks.x = element_blank() , 
+        axis.ticks.y = element_blank(),
+        panel.grid.major.x =element_blank(),
+        panel.grid.major.y =element_blank(),
+        panel.grid.minor =element_blank(),
+        axis.text.x.bottom  = element_blank(),
+        axis.text.y.left = element_blank(),
+        axis.text.x = element_blank()) 
+
+
+
+```
+
+
+
+
+
+```{r}
+spotify_songs_tmp <- spotify_songs %>%
+  select(-track_id,-track_name,-track_album_id) %>% 
+  mutate(release_year = as.factor(year(ymd(track_album_release_date) )),
+         release_month = as.factor(month(ymd(track_album_release_date) )))
+
+spotify_songs_tmp
+
+```
+
