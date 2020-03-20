@@ -2,10 +2,13 @@
 My submissions for the weekly Tidy Tuesday project
 
 
-
-
-
 ## 2020 Submissions
+
+### Week 12 - The Office
+
+
+![](https://github.com/mcnakhaee/Tidy-Tuesday/blob/master/2020/The%20Office/000047.png)
+
 
 ### Week 3 - Passwords
 
