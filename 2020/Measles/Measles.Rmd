@@ -1,0 +1,300 @@
+---
+title: "R Notebook"
+output: html_notebook
+---
+
+
+measles.csv
+variable	class	description
+index	double	Index ID
+state	character	School's state
+year	character	School's district
+name	character	School name
+type	character	Whether a school is public, private, charter
+city	character	City
+county	character	County
+district	logical	School district
+enroll	double	Enrollment
+mmr	double	School's Measles, Mumps, and Rubella (MMR) vaccination rate
+overall	double	School's overall vaccination rate
+xrel	logical	Percentage of students exempted from vaccination for religious reasons
+xmed	double	Percentage of students exempted from vaccination for medical reasons
+xper	double	Percentage of students exempted from vaccination for personal reasons
+
+```{r}
+#devtools::install_github("UrbanInstitute/urbnmapr")
+#install.packages("ggridges")
+extrafont::font_import()
+extrafont::loadfonts()
+
+```
+
+
+
+```{r}
+measles <- readr::read_csv('https://raw.githubusercontent.com/rfordatascience/tidytuesday/master/data/2020/2020-02-25/measles.csv',na = c('-1'))
+tail(measles,20)
+```
+
+
+
+```{r}
+
+library(tidyverse)
+library(urbnmapr)
+library(ggthemes)
+library(cowplot)
+library(ggridges)
+library(santoku)
+
+theme_update(
+  plot.background = element_rect(fill = "black", color = "black"),
+  panel.background = element_rect(fill = "black", color = "black"),
+  panel.border = element_rect(fill = NA, color = NA),
+  axis.line.x = element_line(color = "grey55", size = 1),
+  axis.ticks = element_line(color = "grey55"),
+  axis.title = element_text(color = "grey55", size = 12),
+  axis.text = element_text(color = "grey55"),
+  strip.background = element_rect(fill = NA, color = NA),
+  legend.background = element_rect(fill = NA, color = NA),
+  legend.key = element_rect(fill = NA, color = NA)
+)
+```
+
+```{r}
+states_sf <- get_urbn_map("states", sf = TRUE)
+counties_sf <- get_urbn_map("counties", sf = TRUE)
+colors <- c('#fe938c','#e6b89c','#ead2ac','#9cafb7','#4281a4')
+```
+
+
+,
+         perc_xmed_chopped = chop(perc_xmed, breaks = c(0,5, 10, 20, 30 ,40), labels = c("Below 5%", "10%-20%", "20%-30%","30%-40%", "40%-50%"),drop = TRUE),
+
+```{r warning=FALSE}
+
+
+ measles_modified <- measles %>%
+  #filter(!is.na(enroll)) %>%
+  mutate(
+    xmed = as.numeric(xmed),
+    xper = as.numeric(xper),
+    enroll = as.numeric(enroll),
+    mmr = as.numeric(mmr),
+    n_xmed = (xmed * enroll) / 100,
+    n_xper = (xper * enroll) / 100
+  )  %>%
+   
+  rename(state_name = state) 
+
+county_mean <- measles_modified %>%
+  group_by(state_name, county)  %>%
+  
+  summarize(
+    mean_overal = mean(overall, na.rm = TRUE),
+    mean_mmr = mean(mmr, na.rm = TRUE),
+    is_xrel = if_else(max(xrel, na.rm = TRUE) == TRUE, TRUE, FALSE),
+    sum_n_xmed = sum(n_xmed, na.rm = TRUE),
+    sum_n_xper = sum(n_xper, na.rm = TRUE),
+    perc_xmed = mean(xmed, na.rm = TRUE),
+    perc_xper = mean(xper, na.rm = TRUE),
+    
+    
+  ) %>%
+  mutate(mean_mmr_chopped = chop(mean_mmr, breaks = c(0,30, 50, 70, 80 ,95,100), labels = c("0%-30%", "30%-50%", "50%-70%","70%-80%", "80%-95%","95%-100%")),
+          perc_xper_chopped = chop( perc_xper, breaks = c(0,5, 10, 20, 30 ,40,50), labels = c("0%-30%", "10%-20%", "20%-30%","30%-40%", "40%-50%","Above 50%"),drop = TRUE),
+
+         ) %>% 
+  ungroup()
+
+county_geo_merged <- counties_sf %>% 
+  mutate(county = str_remove(county_name ,' County')) %>% 
+    left_join(county_mean,by = c('state_name','county'))
+
+state_mean <- measles_modified %>%
+  group_by(state_name)  %>%
+  summarize(
+    mean_overal = mean(overall, na.rm = TRUE),
+    mean_mmr = mean(mmr, na.rm = TRUE),
+    is_xrel = if_else(max(xrel, na.rm = TRUE) == TRUE, TRUE, FALSE),
+    sum_n_xmed = sum(n_xmed, na.rm = TRUE),
+    sum_n_xper = sum(n_xper, na.rm = TRUE),
+    perc_xmed = mean(xmed, na.rm = TRUE),
+    perc_xper = mean(xper, na.rm = TRUE),
+    
+  ) %>%
+  ungroup() %>% 
+   mutate(mean_mmr_chopped = chop(mean_mmr, breaks = c(0,30, 50, 70, 80 ,95,100), labels = c("0%-30%", "30%-50%", "50%-70%","70%-80%", "80%-95%","95%-100%")))
+
+
+
+
+```
+
+
+
+```{r}
+mmr_ridge_type_g <- measles_modified %>% 
+filter(!is.na(type),type !='NA') %>% 
+  #pivot_longer(c(mmr,xmed,xper),names_to = 'vac_status',values_to = 'rate') %>% 
+ggplot(aes(x = mmr, y = type).fill = ) +
+  geom_density_ridges(rel_min_height = 0.008,scale = 0.9) + 
+  scale_x_continuous(breaks = c(0,20,40,60,80))  +
+  scale_fill_distiller() +
+  #facet_wrap(vac_status ~ .) +
+  labs(x = 'Percentage', y = '') +
+    theme_tufte()
+
+xmed_ridge_type_g <- measles_modified %>% 
+filter(!is.na(type),type !='NA') %>% 
+ggplot(aes(x = xmed, y = type)) +
+  geom_density_ridges(rel_min_height = 0.008,scale = 0.9) + 
+  scale_x_continuous(breaks = c(0,20,40,60,80))  +
+  scale_fill_distiller() + 
+  labs(x = 'Percentage', y = '') +
+    theme_tufte()
+
+xper_ridge_type_g <- measles_modified %>% 
+filter(!is.na(type),type !='NA') %>% 
+ggplot(aes(x = xper, y = type)) +
+  geom_density_ridges(rel_min_height = 0.008,scale = 0.9) + 
+  scale_x_continuous(breaks = c(0,20,40,60,80))  +
+  scale_fill_distiller() +
+    theme_tufte()
+```
+
+
+```{r fig.height=8,fig.width=13}
+"Fjalla One"
+state_wide_map <- left_join(states_sf,state_mean,by = 'state_name')%>% 
+  ggplot(aes(fill = mean_mmr,label = mean_mmr )) +
+  geom_sf(color = "gray80") +
+    geom_sf_text(aes(label = round(mean_mmr,0)),size = 4,family = 'Garamond') +
+    scale_fill_continuous_tableau() +
+    theme_void() +
+  theme(legend.position = 'none',
+        text = element_text(family = 'Garamond'))
+ 
+state_wide_map    
+```
+```{r}
+
+```
+
+
+```{r}
+
+
+
+counties_sf %>% 
+  mutate(county = str_remove(county_name ,' County')) %>% 
+    left_join(county_mean,by = c('state_name','county'))%>% 
+  ggplot(aes(fill = mean_mmr,label = mean_mmr )) +
+  geom_sf( color = "#ffffff") +
+  labs(fill = 'MMR Rate',title = 'Measles, Mumps, and Rubella (MMR) vaccination rate') +
+  scale_fill_gradientn(colors = colors) +
+    theme_void() +
+  theme(
+    legend.position = 'top'
+  )
+  
+
+
+mmr_county_map <- counties_sf %>% 
+  mutate(county = str_remove(county_name ,' County')) %>% 
+    left_join(county_mean,by = c('state_name','county'))%>% 
+  ggplot(aes(fill = mean_mmr_chopped,label = mean_mmr )) +
+  geom_sf( color = "#ffffff") +
+  labs(fill = 'Vaccination Ratio:') +
+  scale_fill_pander() +
+    theme_void() +
+  theme(legend.position = 'top')
+
+
+mmr_county_map
+```
+```{r}
+
+n_xmed_county_map <- county_geo_merged %>% 
+  ggplot(aes(fill = sum_n_xmed,label = mean_mmr )) +
+  geom_sf( color = "#ffffff") +
+  scale_fill_gradientn(colors = colors) +
+  #scale_fill_colorblind()
+    theme_void()+
+  theme(legend.position = 'top')
+```
+
+```{r}
+ left_join(states_sf,state_mean,by = 'state_name')%>% 
+  ggplot(aes(fill = sum_n_xmed )) +
+  geom_sf( color = "#ffffff") +
+  scale_fill_gradientn(colors = colors) +
+  #scale_fill_colorblind()
+    theme_void()+
+  theme(legend.position = 'top')
+ss```
+
+```{r}
+n_xper_county_map <- county_geo_merged %>% 
+  ggplot(aes(fill = sum_n_xper,label = mean_mmr )) +
+  geom_sf( color = "#ffffff") +
+    #geom_sf_text(aes(label = round(mean_mmr,2))) +
+    #scale_fill_continuous_tableau() +
+  #scale_fill_gradient2_tableau() +
+  scale_fill_gradientn(colors = colors) +
+  #scale_fill_colorblind() + 
+    theme_void() +
+  theme(legend.position = 'top')
+```
+
+
+
+```{r fig.height=20,fig.width=15}
+mmr_plots <-plot_grid(state_wide_map)
+non_vac_plots <- plot_grid(mmr_county_map,n_xmed_county_map,n_xper_county_map,ncol = 3)
+
+#ridge_type_plots <- plot_grid(mmr_ridge_type_g,xmed_ridge_type_g,xper_ridge_type_g,labels = 'auto',ncol = 3)
+plot_grid(state_wide_map,non_vac_plots,facet_ridge,nrow = 3)
+```
+
+
+```{r, fig.height=20,fig.width=15}
+mmr_grid <- plot_grid(mmr_county_map,mmr_ridge_type_g ,ncol = 2)
+xmed_grid <- plot_grid(n_xmed_county_map,xmed_ridge_type_g ,ncol = 2)
+xper_grid <- plot_grid(n_xper_county_map,xper_ridge_type_g ,ncol = 2)
+
+#ridge_type_plots <- plot_grid(mmr_ridge_type_g,,,labels = 'auto',ncol = 3)
+plot_grid(state_wide_map,mmr_grid,xmed_grid,xper_grid,nrow = 4)
+
+
+"MMR Vacination Rate Accros counties"
+
+'The left plot shows the average rate of vaccination for schools in each county'
+'The left plot shows the number of students who were exempted from vacination due to medical reasons'
+
+'The left plot shows the number of students who did not get vaccinated for personal reasons. On the right plot, we can see the distribution of the number of students who were exempted frfor different types of school'
+'Number of Students Who Did Were Exempted from Vacination for Medical Reasons'
+
+
+'Medical Reasons and Exemption from Vacination '
+
+'Personal Reasons and Exemption from Vacination'
+```
+
+
+
+
+```{r}
+facet_ridge <- measles_modified %>% 
+filter(!is.na(type),type !='NA') %>% 
+  pivot_longer(c(mmr,xmed,xper),names_to = 'vac_status',values_to = 'rate') %>% 
+ggplot(aes(x = rate, y = type)) +
+  geom_density_ridges(rel_min_height = 0.008,scale = 0.9) + 
+  scale_x_continuous(breaks = c(0,20,40,60,80))  +
+  #scale_fill_distiller() +
+  facet_wrap(vac_status ~ .) +
+    theme_tufte()
+fact_ridge
+
+```
+

@@ -18,7 +18,7 @@ library(gghighlight)
 library(hrbrthemes)
 library(ggthemes)
 library(lubridate)
-library(ggrepel)
+
 ```
 
 ```{r}
@@ -90,6 +90,9 @@ embedding <- spotify_songs_umap_normed$layout %>%
                                          track_name,
                                          NULL)) %>%
   distinct(track_name, .keep_all = TRUE)
+
+write_csv(embedding,'embedding_02_01.csv')
+
 embedding %>%
   ggplot(aes(x = element_1, y = element_2 ,color = selected_artist )) +
   geom_point(aes(size = point_size_selected_artist)) +
@@ -145,6 +148,55 @@ spotify_songs_tmp <- spotify_songs %>%
          release_month = as.factor(month(ymd(track_album_release_date) )))
 
 spotify_songs_tmp
+spotify_songs %>% names()
+spotify_songs
+```
 
+
+```{r}
+library(genius)
+
+
+
+spotify_songs_text <- spotify_songs %>% 
+  head(100) %>% 
+  rowwise() %>% 
+  mutate(lyrics = genius_lyrics(track_artist,
+                       	shorter_names))
+
+
+genius_lyrics(song  = "	Memories",
+                   artist =      "Maroon 5")
+genius::add_genius(spotify_songs,)
+
+spotify_songs %>% head(100) %>% 
+  select(track_artist, shorter_names) %>% 
+  add_genius(track_artist, shorter_names, type = 'lyrics')
+```
+
+
+```{python}
+import pandas as pd
+
+
+df = r.spotify_songs
+df.head()
+df['shorter_names'] = df.shorter_names.apply(lambda x: x.split('(')[0])
+```
+```{python}
+df['shorter_names'] 
+```
+
+```{r}
+library(reticulate)
+s_s <- py$df
+
+
+spotify_songs_lyrics <- s_s %>% head(100) %>% 
+  #select(track_artist, shorter_names) %>% 
+  add_genius(track_artist, shorter_names, type = 'lyrics')
+
+spotify_songs_lyrics %>% 
+  dim()
 ```
 

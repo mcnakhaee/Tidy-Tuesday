@@ -1,0 +1,311 @@
+---
+title: "Office"
+output: html_notebook
+---
+
+```{r }
+extrafont::font_import('C:\\Users\\mcnak\\Downloads\\American Typewriter Regular')
+#remotes::install_github("wilkelab/ggtext")
+library(extrafont)
+library(extrafont)
+font_import()
+
+loadfonts(device = "postscript")
+#extrafont::loadfonts()
+extrafont::loadfonts()
+extrafont::fonttable()
+windowsFont('Oswald')
+```
+
+```{r}
+#install.packages("schrute")
+#devtools::install_github("ropensci/tif")
+#devtools::install_github("davidsjoberg/ggbump")
+#install.packages("extrafontdb")
+extrafont::loadfonts(device="win")
+
+library(tidytext)
+library(ggplot2)
+library(tidyverse)
+library(schrute)
+library(reticulate)
+library(tif)
+library(lubridate)
+library(ggtext)
+library(tidygraph)
+library(magrittr)
+library(ggraph)
+library(ggbump)
+library(ggthemes)
+library(hrbrthemes)
+library("spacyr")
+#spacy_install()
+#spacyr::spacy_download_langmodel('en_core_web_lg')
+```
+```{r}
+spacy_initialize(model = 'en_core_web_lg')
+```
+
+```{r}
+
+head(theoffice)
+```
+
+```{r}
+dim(theoffice)
+```
+```{r}
+theoffice_corpus <- theoffice %>% 
+  rename(doc_id = index) %>% 
+  select(doc_id,text,everything()) %>% 
+  mutate(air_date = as_date(air_date),
+         doc_id = as.character(doc_id))
+
+theoffice_corpus %>%  glimpse()
+```
+```{r}
+tif_is_corpus_df(theoffice_corpus %>% select(doc_id,text))
+```
+
+
+```{r}
+parsed_treanscript <- spacy_parse(theoffice_corpus)
+head(parsed_treanscript)
+
+```
+
+
+
+
+```{r}
+entities <- entity_extract(parsed_treanscript, type = "all")
+entities
+entities %>% 
+  filter(entity_type == 'PERSON') %>% 
+  count(entity,sort = TRUE)
+```
+```{r}
+office_person_ent <- 
+  entities %>% 
+  filter(entity_type == 'PERSON') %>% 
+  left_join(theoffice_corpus,by = 'doc_id') %>% 
+  select(-air_date         ) %>% 
+  as_tibble()
+
+glimpse(office_person_ent)
+head(office_person_ent)
+```
+```{r}
+#reticulate::conda_install(envname = 'spacy_condaenv', 'fuzzywuzzy',pip = TRUE)
+
+
+#reticulate::conda_install(envname = 'spacy_condaenv', 'pandas',pip = TRUE)
+
+
+
+list_characters <- office_person_ent %>% 
+  count(character)%>% 
+  filter(n > 50) %>% 
+  distinct(character,) %>% 
+  pull()
+
+list_characters
+
+```
+
+```{python}
+from fuzzywuzzy import fuzz 
+from fuzzywuzzy import process 
+import pandas as pd
+
+list_characters = r.list_characters
+office_person_ent = r.office_person_ent
+
+def match_names(name):
+  try:
+    return process.extractOne(name, list_characters,score_cutoff = 80)[0] 
+  except:
+    return None
+
+office_person_ent['char_name'] = office_person_ent.entity.apply(lambda x: match_names(x) )
+
+office_person_ent['char_name'] =office_person_ent['char_name'].apply(lambda x: str(x))
+```
+```{python}
+
+```
+
+
+
+```{r}
+office_person_ent <- py$office_person_ent
+glimpse(office_person_ent)
+```
+
+
+```{r}
+list_characters
+```
+
+```{r}
+office_person_ent %>% 
+  write_csv('office_person_ent.csv')
+
+
+office_person_ent <- read_csv('office_person_ent.csv')
+```
+```{r}
+cols <- c('#59c8e5', '#ff9223', '#fe9ea5',  '#fed032',  '#0a7abf',
+                 '#2e968c', '#fe9ea5',  '#4cb580', "#ff9223",  '#cccccc','#fe4d64')
+```
+
+```{r fig.height=40,fig.width=40}
+
+#top_characters <- c("Michael" ,"Dwight" , "Pam"   ,  "Jim"  , "Kevin" ,  "Andy","Darryl" , "Creed"  , "Jan")
+
+
+office_person_ent_graph_table <- office_person_ent %>%
+  filter(char_name != 'None',
+         character %in% list_characters,
+         char_name %in% list_characters,) %>%
+  mutate(season = paste('Season ', as.factor(as.integer(season)))) %>%
+  mutate(
+    from = character  ,
+    to = char_name,
+    from = if_else(str_detect(from, 'David'), 'David', from),
+    to = if_else(str_detect(to, 'David'), 'David', to)
+  ) %>%
+  group_by(from, to, season) %>%
+  summarize(n_mentions = n()) %>%
+  
+  ungroup() %>%
+  as_tbl_graph(directed = TRUE) %>%
+  activate(nodes) %>%
+  mutate(bet_cent = centrality_betweenness(),
+         deg_cent = centrality_degree(),)
+
+
+full_layout <-
+  create_layout(graph = office_person_ent_graph_table,
+                layout = "linear",
+                circular = T)
+
+xmin <- min(full_layout$x)
+xmax <- max(full_layout$x)
+ymin <- min(full_layout$y)
+ymax <- max(full_layout$y)
+
+
+
+g <- ggraph(
+  full_layout,
+  layout = 'manual',
+  x = x,
+  y = y,
+  circular = TRUE
+) +
+  geom_edge_arc(
+    aes(
+      edge_width = n_mentions,
+      colour = season,
+      alpha = n_mentions
+    ),
+    alpha = 0.3,
+    arrow = arrow(length = unit(3.5, 'mm')),
+    start_cap = circle(3.5, 'mm'),
+    end_cap = circle(3.3, 'mm')
+  ) +
+  geom_node_point(aes(size = deg_cent, color = bet_cent)) +
+  geom_node_text(aes(
+    label = name,
+    x = x * 1.15,
+    y = y * 1.15,
+    angle = ifelse(
+      atan(-(x / y)) * (180 / pi) < 0,
+      90 + atan(-(x / y)) * (180 / pi),
+      270 + atan(-x / y) * (180 / pi)
+    ),
+  ),
+  #repel = TRUE,
+  size = 9,
+  family= 'American Typewriter') +
+  theme_graph(foreground = 'steelblue', fg_text_colour = 'white') +
+  labs(title = "Who Mentioned Whom in <span style = 'color:#fc9d9d;'>the office</span>? ",
+       subtitle = 'This plot shows you the interactions between characters in The Office tv series over the course of its 9 seasons.',
+       caption = '\n\n
+                  mcnakhaee.com') +
+  
+  expand_limits(x = c(xmin - 0.2, xmax + 0.2),
+                y = c(ymin - 0.2, ymax + 0.2)) +
+  scale_edge_color_manual(values = cols) +
+  facet_edges( ~ season) +
+  theme_graph(base_family = 'AmericanTypewriter',) +
+  theme(
+    plot.title = element_markdown(
+      family = 'American Typewriter',
+      face = "bold",
+      size = 60,
+      margin = ggplot2::margin(0, 0, 20, 0),
+      hjust = 0
+    ),
+    legend.position = 'none',
+    plot.subtitle = element_text(
+      family = 'American Typewriter',
+      size = 40,
+      margin = margin(0, 0, 60, 0),
+      hjust = 0
+    ),
+    strip.text = element_text(
+      family = 'American Typewriter',
+      size = 40,
+      #margin = margin(0, 0, 60, 0),
+      hjust = 0.5
+    ),
+    
+        plot.caption = element_text(
+      family = 'American Typewriter',
+      size = 30,
+      #margin = margin(0, 0, 60, 0),
+      #hjust = 0.5
+    ),
+    strip.background = element_rect(color = 'gray50',
+                                    fill = "#fc9d9d"),
+
+  ) 
+
+g
+
+cols <- c('#59c8e5', '#0a7abf','#69306d','#fed032', '#ff9223', '#fe9ea5',   
+               '#C6DABF', '#4cb580','#2e968c', '#fe9ea5',   "#ff9223", '#fe4d64' ,'#cccccc')
+
+```
+
+
+## Antoher Plot
+```{r warning=FALSE,message=FALSE,fig.height=10,fig.width=10}
+list_characters <- office_person_ent %>% 
+  count(character,sort = TRUE)%>% 
+  filter(n > 100) %>% 
+  distinct(character,) %>% 
+  pull()
+office_person_ent %>%
+  filter(char_name %in% list_characters) %>% 
+  count(char_name,season)%>%
+  mutate(season = as.integer(season)) %>% 
+  ggplot(aes(x = season,y =n,color = char_name)) +
+  geom_point(show.legend = FALSE)+
+  geom_line(show.legend = FALSE) +
+  facet_wrap(~char_name)
+  
+  
+```
+```{r warning=FALSE,message=FALSE,fig.height=15,fig.width=15}
+office_person_ent %>%
+  count(character,entity,season,sort = TRUE)%>%
+  mutate(season = as.integer(season)) %>% 
+  ggplot(aes(x = season,y =n,color = char_name)) +
+```
+```{r}
+scale_fill_tableau()
+```
+

@@ -270,4 +270,94 @@ filter(!is.na(transistor_count)) %>%
   labs(x = NULL, y = "Number of Transistors")
 
 
+```{r}
+office_person_ent_graph_table <- office_person_ent %>%
+  filter(char_name != 'None', character %in% list_characters
+  ) %>%
+  # dplyr::rowwise() %>% 
+  #mutate(char_name      =  as.factor(extract2(char_name,1))) %>% 
+  
+  mutate(from = character  , to = char_name        ) %>%
+  group_by(from, to) %>%
+  summarize(n_mentions = n()) %>%
+  ungroup() %>%
+  as_tbl_graph(directed = TRUE) %>%
+  activate(nodes) %>% 
+  mutate(
+    bet_cent = centrality_betweenness(),
+    deg_cent = centrality_degree(),
+    
+  )
+```
 
+```{r warning=FALSE,message=FALSE,fig.height=25,fig.width=25}
+ggraph(office_person_ent_graph_table, layout = 'auto', ) +
+  geom_edge_link(aes(
+    edge_width = n_mentions,
+    colour = n_mentions,
+    fill = n_mentions
+  ),
+  arrow = arrow(length = unit(3.5, 'mm')), 
+  start_cap = circle(3.5, 'mm'),
+  end_cap = circle(3.3, 'mm')) +
+  geom_node_point(aes( size = deg_cent)) +
+  geom_node_label(aes(label = name),
+                  repel = TRUE,
+                  size = 8) +
+  #scale_fill_manual(values = custom_palette) +
+  
+  theme_graph(foreground = 'steelblue', fg_text_colour = 'white') +
+  labs(title = 'Who Mentioned Whom ') +
+  #scale_edge_colour_manual(values = edge_cols) +
+  scale_edge_colour_gradient2() +
+  scale_edge_fill_gradient2() +
+  theme_graph(base_family = 'Montserrat', ) +
+  theme(
+    plot.title = element_text(
+      family = 'Montserrat',
+      face = "bold",
+      size = 50,
+      margin = ggplot2::margin(0, 0, 20, 0),
+      hjust = 0.5
+    )
+  )
+```
+```{r warning=FALSE,message=FALSE,fig.height=25,fig.width=25}
+full_layout <- create_layout(graph = office_person_ent_graph_table, layout = "linear", circular = T)
+
+
+ggraph(full_layout ) +
+  geom_edge_arc(aes(
+    edge_width = n_mentions,
+    colour = n_mentions,
+    #fill = n_mentions
+  ),
+  arrow = arrow(length = unit(3.5, 'mm')), 
+  start_cap = circle(3.5, 'mm'),
+  end_cap = circle(3.3, 'mm')) +
+  geom_node_point(aes( size = deg_cent,color = bet_cent)) +
+  geom_node_label(aes(label = name),
+                  #  angle = ifelse(atan(-(x/y))*(180/pi) < 0,
+                  #                 90 + atan(-(x/y))*(180/pi),
+                  #                 270 + atan(-x/y)*(180/pi)),
+                  #  hjust = ifelse(x > 0, 0 ,1),
+                  repel = TRUE,
+                  size = 8) +
+  #scale_fill_manual(values = custom_palette) +
+  scale_fill_continuous() + 
+  theme_graph(foreground = 'steelblue', fg_text_colour = 'white') +
+  labs(title = 'Who Mentioned Whom ') +
+  #scale_edge_colour_manual(values = edge_cols) +
+  scale_edge_colour_gradient2() +
+  scale_edge_fill_gradient2() +
+  theme_graph(base_family = 'Montserrat', ) +
+  theme(
+    plot.title = element_text(
+      family = 'Montserrat',
+      face = "bold",
+      size = 50,
+      margin = ggplot2::margin(0, 0, 20, 0),
+      hjust = 0.5
+    )
+  )
+```
