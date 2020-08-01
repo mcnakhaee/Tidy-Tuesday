@@ -1,13 +1,13 @@
 ---
-title: "R Notebook"
+title: "School Diversity"
 output: html_notebook
 ---
 
 
 ```{r}
-install.packages("emojifont")
+#install.packages("emojifont")
 
-install.packages("waffle", repos = "https://cinc.rud.is")
+#install.packages("waffle", repos = "https://cinc.rud.is")
 
 ```
 
@@ -16,6 +16,7 @@ library(tidyverse)
 library(hrbrthemes)
 library(waffle)
 library(emojifont)
+library(cowplot)
 
 
 ```
@@ -23,131 +24,122 @@ library(emojifont)
 ```{r}
 school_diversity <- readr::read_csv("https://raw.githubusercontent.com/rfordatascience/tidytuesday/master/data/2019/2019-09-24/school_diversity.csv")
 
+tt <-  tidytuesdayR::tt_load('2019-09-24')
+tt
 ```
 
 ```{r}
-attach()
-
-school_diversity %>% group_by(ST,SCHOOL_YEAR) %>% 
-  summarize(mean_asian = mean(Asian))
-```
-
-```{r}
-names(school_diversity
-      )
+names(school_diversity)
 ```
 
 
 ```{r}
-agg_data <- school_diversity %>% 
-  #select(LEAID ,AIAN  ,Asian ,Black,Hispanic,White, Multi ) %>% 
-  gather(key = "race", value = "percentage",AIAN  ,Asian ,Black,Hispanic,White, Multi ) %>% 
-  #filter(SCHOOL_YEAR == '1994-1995') %>% 
+school_diversity_group_by_state <- school_diversity %>% 
+  pivot_longer(AIAN :Multi,names_to  = "race", values_to  = "proportion" ) %>% 
+  group_by(ST,SCHOOL_YEAR,race) %>% 
+  summarise(mean_proportion = mean(proportion ,na.rm = T)) %>% 
+  mutate(mean_proportion_int = as.integer(round(mean_proportion))) %>% 
+  replace_na(list(mean_proportion_int = 0))
+
+school_diversity_group_by_country <- school_diversity %>% 
+  pivot_longer(AIAN :Multi,names_to  = "race", values_to  = "proportion" ) %>% 
   group_by(SCHOOL_YEAR,race) %>% 
-  summarise(mean_perc = mean(percentage,na.rm = T)) %>% 
-  mutate(mean_perc_int = as.integer(round(mean_perc)))
-
-
-agg_data
-
+  summarise(mean_proportion = mean(proportion ,na.rm = T)) %>% 
+  mutate(mean_proportion_int = as.integer(round(mean_proportion))) %>% 
+  replace_na(list(mean_proportion_int = 0))
 ```
-```{r}
-agg_data %>% 
-  filter(SCHOOL_YEAR != '1994-1995') %>% 
-  mutate(race = fct_reorder(race,mean_perc_int)) %>% 
-  ggplot(aes(fill = race,values = mean_perc_int)) +
-geom_waffle(n_rows = 10, size = 2.03, colour = "white", flip = F) +
-  scale_x_discrete() + 
-    scale_y_continuous(labels = function(x) x * 10, # make this multiplyer the same as n_rows
-                     expand = c(0,0)) +
+
+
+
+```{r fig.height=35, fig.width=25, message=FALSE, warning=FALSE}
+
+
+colors <- c(
+  'AIAN' = '#577590',
+  'Asian' = '#43AA8B',
+  'Black' = '#F3722C',
+  'Hispanic' = '#F94144',
+  'Multi' = '#90BE6D',
+  'White' = '#F9C74F'
+)
+g_state <- school_diversity_group_by_state %>%
+  filter(SCHOOL_YEAR != '1994-1995', ST != 'ID') %>%
+  mutate(race = fct_reorder(race, mean_proportion_int)) %>%
+  ggplot(aes(fill = race, values = mean_proportion_int)) +
+  geom_waffle(
+    n_rows = 10,
+    size = 2.03,
+    colour = "white",
+    flip = F
+  ) +
+  scale_x_discrete(expand = c(0, 0)) +
+  scale_y_discrete(expand = c(0, 0)) +
   
-    scale_x_discrete(expand=c(0,0)) +
-  scale_y_discrete(expand=c(0,0)) +
-    theme_enhance_waffle() +
-  #theme_ipsum_rc(grid="") +
-  ggthemes::scale_fill_tableau(name=NULL) +
-  coord_equal()
-
-  #facet_wrap(~SCHOOL_YEAR,ncol = 1)
-
-
+  theme_enhance_waffle() +
+  scale_fill_manual(values = colors) +
+  facet_wrap(~ ST, ncol = 5) +
+  coord_equal() +
+  theme(strip.text = element_text(family =  'Montserrat', size = 18),
+        legend.position = 'none')
 
 ```
 
-```{r}
 
-agg_data_1 <- agg_data %>% 
-  unnest() %>% 
-  ungroup() %>% 
+```{r fig.height=35, fig.width=25, message=FALSE, warning=FALSE}
+
+
+
+
+g_country <- school_diversity_group_by_country %>%
   filter(SCHOOL_YEAR != '1994-1995') %>%
-  select(-SCHOOL_YEAR) %>% 
-  mutate(names = race,
-         vals = mean_perc_int) %>% 
-  select(names,vals)
+  mutate(race = fct_reorder(race, mean_proportion_int)) %>%
+  ggplot(aes(fill = race, values = mean_proportion_int)) +
+  geom_waffle(
+    n_rows = 10,
+    size = 2.03,
+    colour = "white",
+    flip = F
+  ) +
+  scale_x_discrete(expand = c(0, 0)) +
+  scale_y_discrete(expand = c(0, 0)) +
   
-  
-
-as.vector(agg_data_1)
-waffle(agg_data_1,legend_pos = "bottom") +
-  theme_classic()
-```
-
-
-
-```{r fig.height=5, fig.width=10, message=FALSE, warning=F}
-extrafont::font_install() 
-extrafont::loadfonts()
-extrafont::font_install()
-
-
-agg_data %>% 
-  filter(SCHOOL_YEAR != '1994-1995') %>% 
-  mutate(race = fct_reorder(race,mean_perc_int),
-         label = emoji('camel')) %>% 
-  ggplot(aes(values = mean_perc_int)) +
-  geom_pictogram(n_rows = 10, aes(label = label,colour = race), flip = TRUE, make_proportional = TRUE) +
- 
-  scale_x_discrete() + 
-   # scale_y_continuous(labels = function(x) x * 10, # make this multiplyer the same as n_rows
-     #                expand = c(0,0)) +
-  
-    scale_x_discrete(expand=c(0,0)) +
-  scale_y_discrete(expand=c(0,0)) +
-    theme_enhance_waffle() +
-  #theme_ipsum_rc(grid="") +
-  ggthemes::scale_fill_tableau(name=NULL) +
-  coord_equal() 
-
+  guides(fill = guide_legend(override.aes = list(alpha = 0.9, size = 12))) +
+  labs(fill = '') +
+  theme_enhance_waffle() +
+  scale_fill_manual(values = colors) +
+  coord_equal() +
+  theme(
+    strip.text = element_text(family =  'Montserrat',
+                              
+                              size = 18),
+    legend.position = 'top',
+    plot.title = element_text(size = 40,
+                              margin = ggplot2::margin(0, 0, 30, 0)),
+    plot.subtitle = element_text(size = 25),
+    legend.direction = 'horizontal',
+    legend.text = element_text(size = 15, family =  'Montserrat')
+  )
 
 
 ```
 
-
-```{r}
-school_diversity %>% 
-  #select(LEAID ,AIAN  ,Asian ,Black,Hispanic,White, Multi ) %>% 
-  gather(key = "race", value = "percentage",AIAN  ,Asian ,Black,Hispanic,White, Multi ) %>% 
-  filter(SCHOOL_YEAR != '1994-1995') %>% 
-  group_by(race) %>% 
-  summarise(mean_perc = mean(percentage,na.rm = T))
+```{r message=FALSE, warning=FALSE}
+g_combinded <- plot_grid(g_country,g_state,nrow = 2,rel_heights = c(0.2,0.8))
 ```
 
 
-```{r}
 
-set.seed(123)
-x <- rnorm(10)
-set.seed(321)
-y <- rnorm(10)
-plot(x, y, cex=0)
-text(x, y, labels=emoji('cow'), cex=1.5, col='steelblue', family='EmojiOne')
+```{r fig.height=3,fig.width=20}
+title <- ggdraw() +draw_label('School Diversity in the US During the 2016-2017 School Year',fontface = 'bold',size = 30,hjust =0.5) 
 
-d <- data.frame(x=x, y=y,
-     label = sample(c('\U0001F601', emoji('camel')), 10, replace=TRUE),
-     type = sample(LETTERS[1:3], 10, replace=TRUE))
+subtitle<- ggdraw() +draw_label('This plot illustrates the average racial distribution of students in the US and accross different US States',fontface = 'bold',size = 20,hjust =0.5,color = 'grey20')
 
-library("ggplot2")
-ggplot(d, aes(x, y, color=type, label=label)) +
-    geom_text(family="EmojiOne", size=6)
+
+```
+
+
+```{r fig.height=40,fig.width=20, message=FALSE, warning=FALSE}
+plot_grid(title,subtitle,g_combinded,nrow = 3,rel_heights = c(0.02,0.02,0.8)) 
+
 ```
 
