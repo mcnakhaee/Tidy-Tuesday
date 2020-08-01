@@ -17,15 +17,10 @@ library(hrbrthemes)
 library(waffle)
 library(emojifont)
 library(cowplot)
-
-
 ```
 
 ```{r}
 school_diversity <- readr::read_csv("https://raw.githubusercontent.com/rfordatascience/tidytuesday/master/data/2019/2019-09-24/school_diversity.csv")
-
-tt <-  tidytuesdayR::tt_load('2019-09-24')
-tt
 ```
 
 ```{r}
@@ -52,8 +47,6 @@ school_diversity_group_by_country <- school_diversity %>%
 
 
 ```{r fig.height=35, fig.width=25, message=FALSE, warning=FALSE}
-
-
 colors <- c(
   'AIAN' = '#577590',
   'Asian' = '#43AA8B',
