@@ -46,11 +46,17 @@ My submissions for the weekly Tidy Tuesday project
 
 
 
-**Week 35 - Simpsons Guest Stars**
+### **Week 35 - Simpsons Guest Stars**
 
-### ![](https://github.com/mcnakhaee/Tidy-Tuesday/blob/master/Week%2035%20-%20Simpsons%20Guests/Plots/1.jpg)
+
+![](https://github.com/mcnakhaee/Tidy-Tuesday/blob/master/Week%2035%20-%20Simpsons%20Guests/Plots/1.jpg)
 
 ![2](https://github.com/mcnakhaee/Tidy-Tuesday/blob/master/2019/Week%2035%20-%20Simpsons%20Guests/Plots/2.jpg)
 
 ![3](https://github.com/mcnakhaee/Tidy-Tuesday/blob/master/2019/Week%2035%20-%20Simpsons%20Guests/Plots/3.jpg)
+
+
+### ** School Diversity **
+![](https://github.com/mcnakhaee/Tidy-Tuesday/blob/master/2019/School%20Diversity/final_plot.png)
+
 
