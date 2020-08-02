@@ -1,0 +1,169 @@
+---
+title: "TidyTemplate"
+date: 2020-07-30
+output: html_output
+---
+
+# TidyTuesday
+
+Join the R4DS Online Learning Community in the weekly #TidyTuesday event!
+Every week we post a raw dataset, a chart or article related to that dataset, and ask you to explore the data.
+While the dataset will be “tamed”, it will not always be tidy! As such you might need to apply various R for Data Science techniques to wrangle the data into a true tidy format.
+The goal of TidyTuesday is to apply your R skills, get feedback, explore other’s work, and connect with the greater #RStats community!
+As such we encourage everyone of all skills to participate!
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+library(tidyverse)
+library(ggthemes)
+library(cowplot)
+library(tidytuesdayR)
+library(ggtext)
+
+```
+
+# Load the weekly Data
+
+Dowload the weekly data and make available in the `tt` object.
+
+```{r Load}
+
+tt <- tt_load("2020-07-28")
+
+```
+
+
+# Readme
+
+Take a look at the readme for the weekly data to get insight on the dataset.
+This includes a data dictionary, source, and a link to an article on the data.
+
+```{r Readme, eval = interactive()}
+
+tt
+
+```
+
+
+# Glimpse Data
+
+Take an initial look at the format of the data available.
+
+```{r Glimpse}
+
+tt %>% 
+  map(glimpse)
+
+```
+
+# Wrangle
+
+Explore the data and process it into a nice format for plotting! Access each dataset by name by using a dollarsign after the `tt` object and then the name of the data set.
+
+```{r Wrangle}
+penguins <- tt$penguins
+penguins_long <- penguins %>% 
+  mutate_at(vars(bill_length_mm:body_mass_g), scales::rescale, to = c(0, 20)) %>% 
+  pivot_longer(bill_length_mm:body_mass_g, names_to = 'measurements',values_to = 'value')
+
+
+stat_penguins_long <- penguins_long %>%  group_by(species,sex, measurements) %>%
+      summarise_at(c("value"), c('avg'=mean,'max' =max,'min' = min),na.rm = TRUE) %>%
+      arrange(factor(species)) %>%
+      ungroup()
+
+
+stat_penguins_long <- stat_penguins_long %>% 
+  pivot_longer(avg:min, names_to = 'stats',values_to = 'value')
+stat_penguins_long
+```
+
+
+
+
+# Visualize
+
+Using your processed dataset, create your unique visualization.
+
+```{r message=FALSE, warning=FALSE}
+extrafont::loadfonts(device="win")
+myFont <- "Montserrat"
+windowsFonts(Montserrat  = myFont)
+```
+
+
+
+```{r fig.height=33, fig.width=28, message=FALSE, warning=FALSE}
+
+c('min' = '#925000', 'avg' = '#FF8C00', 'max' = '#FFB55B')
+make_plot  <- function(type, colors,title,subtitle){
+  
+  stat_penguins_long %>%
+  filter(!is.na(sex), species == type) %>%
+  ggplot() +
+  geom_polygon(
+    aes(
+      x = measurements,
+      y = value,
+      group = stats,
+      fill = stats,
+      color= stats
+    ),
+    alpha = .84,
+    size = 2.5,
+    
+  ) +
+  scale_fill_manual(values = colors) +
+  scale_color_manual(values = colors) +
+  facet_grid( ~ sex) +
+  coord_polar(clip = 'off') +
+  scale_x_discrete(labels = labels) +
+  ylim(0, 20) +
+  labs(title = title, subtitle = subtitle )+
+  theme(strip.background = element_rect(fill = colors[3],color = colors[3]),
+        plot.title = element_textbox_simple(size = 30,margin = margin(t = 50,b = 60)),
+        plot.subtitle = element_textbox_simple(size = 22,margin = margin(t = 10,b = 50))) 
+}
+
+
+
+
+
+title <- "A Comparison between size measurements of <span style = 'color:#A034F0;'> Chinstrap</span>, <span style = 'color:#159090;'> Gentoo</span> and <span style = 'color:#FF8C00;'> Adelie</span> Penguin Species"
+subtitle <- 'This plot illustrates how three penguin species in  Palmer Archipelago, Antarctica differ from each other based on their the average, the minimum and the maximum recorded size measurements'
+
+
+ch_p <- make_plot('Chinstrap',c('min' = '#510A87', 'avg' = '#A034F0', 'max' = '#DCB6FA'),title, subtitle)
+
+
+gentoo_p <- make_plot('Gentoo',c('min' = '#0D5C5C', 'avg' = '#159090', 'max' = '#A8F3F3'),'', '') +
+    theme(
+        plot.title = element_textbox_simple(size = 25,margin = margin(t = 20,b = 20)),
+        plot.subtitle = element_textbox_simple(size = 20,margin = margin(t = 20,b = 20))) 
+
+
+adelie_p <- make_plot('Adelie',c('min' = '#925000', 'avg' = '#FF8C00', 'max' = '#FFB55B'),'       ', '         ') +
+    theme(
+        plot.title = element_textbox_simple(size = 25,margin = margin(t = 20,b = 20)),
+        plot.subtitle = element_textbox_simple(size = 20,margin = margin(t = 20,b = 20))) 
+
+final_plt <- plot_grid(ch_p,gentoo_p,adelie_p,nrow = 3,rel_heights  = c(1,0.83,0.83))
+
+final_plt
+```
+
+
+
+
+# Save Image
+
+Save your image for sharing. Be sure to use the `#TidyTuesday` hashtag in your post on twitter! 
+
+```{r}
+
+# This will save your most recent plot
+ggsave( final_plt,
+  filename = "My TidyTuesday Plot.png",
+  device = "png")
+
+```
