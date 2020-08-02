@@ -4,6 +4,10 @@ My submissions for the weekly Tidy Tuesday project
 
 ## 2020 Submissions
 
+### Palmer Penguins
+
+![](https://github.com/mcnakhaee/Tidy-Tuesday/blob/master/2020/2020_07_28_Palmer_Penguins/My%20TidyTuesday%20Plot.png)
+
 ### Week 12 - The Office
 
 
