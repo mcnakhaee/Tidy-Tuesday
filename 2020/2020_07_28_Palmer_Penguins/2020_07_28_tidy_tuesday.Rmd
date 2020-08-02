@@ -142,7 +142,7 @@ gentoo_p <- make_plot('Gentoo',c('min' = '#0D5C5C', 'avg' = '#159090', 'max' = '
         plot.subtitle = element_textbox_simple(size = 20,margin = margin(t = 20,b = 20))) 
 
 
-adelie_p <- make_plot('Adelie',c('min' = '#925000', 'avg' = '#FF8C00', 'max' = '#FFB55B'),'       ', '         ') +
+adelie_p <- make_plot('Adelie',c('min' = '#925000', 'avg' = '#FF8C00', 'max' = '#FFB55B'),' ', ' ') +
     theme(
         plot.title = element_textbox_simple(size = 25,margin = margin(t = 20,b = 20)),
         plot.subtitle = element_textbox_simple(size = 20,margin = margin(t = 20,b = 20))) 
