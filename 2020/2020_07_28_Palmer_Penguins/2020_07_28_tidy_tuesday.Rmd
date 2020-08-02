@@ -129,7 +129,7 @@ make_plot  <- function(type, colors,title,subtitle){
 
 
 
-title <- "A Comparison between size measurements of <span style = 'color:#A034F0;'> Chinstrap</span>, <span style = 'color:#159090;'> Gentoo</span> and <span style = 'color:#FF8C00;'> Adelie</span> Penguin Species"
+title <- "A Comparison between Four Size Measurements of <span style = 'color:#A034F0;'> Chinstrap</span>, <span style = 'color:#159090;'> Gentoo</span> and <span style = 'color:#FF8C00;'> Adelie</span> Penguin Species"
 subtitle <- 'This plot illustrates how three penguin species in  Palmer Archipelago, Antarctica differ from each other based on their the average, the minimum and the maximum recorded size measurements'
 
 
