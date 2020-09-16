@@ -1,0 +1,247 @@
+---
+title: "TidyTemplate"
+date: 2020-09-08
+output: html_output
+---
+
+# TidyTuesday
+
+Join the R4DS Online Learning Community in the weekly #TidyTuesday event!
+Every week we post a raw dataset, a chart or article related to that dataset, and ask you to explore the data.
+While the dataset will be “tamed”, it will not always be tidy! As such you might need to apply various R for Data Science techniques to wrangle the data into a true tidy format.
+The goal of TidyTuesday is to apply your R skills, get feedback, explore other’s work, and connect with the greater #RStats community!
+As such we encourage everyone of all skills to participate!
+
+```{r setup, include=FALSE}
+
+knitr::opts_chunk$set(
+	echo = TRUE,
+	message = FALSE,
+	warning = FALSE
+)
+
+
+library(tidyverse)
+library(ggthemes)
+library(tidytuesdayR)
+library(rsyntax)
+library(spacyr)
+library(tidytext)
+spacy_initialize(model = "en_core_web_lg")
+
+
+myFont <- 'Rubik'
+windowsFonts(Rubik  = myFont)
+extrafont::loadfonts(device="win")
+myFont <- "Poppins Light"
+windowsFonts(`Poppins Light`  = myFont)
+```
+
+# Load the weekly Data
+
+Dowload the weekly data and make available in the `tt` object.
+
+```{r Load}
+
+tt <- tt_load("2020-09-08")
+
+```
+
+
+# Wrangle
+
+Explore the data and process it into a nice format for plotting! Access each dataset by name by using a dollarsign after the `tt` object and then the name of the data set.
+
+```{r Wrangle}
+female_characters <- c('monica','rachel','phoebe','emily','carol','janice','susan','kathy','elizabeth','she')
+male_characters <- c('ross','joey','chandler','mike','richard','gunther','paolo','bob','paul','frank','he')
+
+tq <- tquery(pos = "VERB", label = "verb", children(relation = "nsubj", label = "subject"))
+
+tokens_df_dep <- tt$friends %>%
+  unnest_tokens(sentence, text, token = 'sentences') %>%
+  rownames_to_column() %>%
+  rename(doc_id = rowname,
+         text = sentence) %>%
+  spacy_parse(dependency = TRUE) %>%
+  annotate_tqueries("annotation", query_name = tq) %>%
+  filter(!is.na(annotation))
+
+
+female_ids <- tokens_df_dep %>% 
+  filter(token %in% female_characters, annotation =='subject' ) %>% 
+  pull(doc_id)
+  
+male_ids <- tokens_df_dep %>% 
+  filter(token %in% male_characters, annotation =='subject'  ) %>% 
+  pull(doc_id)
+
+
+female_verbs <- tokens_df_dep %>% 
+  filter(doc_id %in% female_ids,pos == 'VERB',relation =='ROOT'  ) %>% 
+  unnest_tokens(word,lemma) %>% 
+  anti_join(stop_words) %>% 
+  count(word,sort = TRUE) %>% 
+  mutate(pronoun = 'she')
+
+male_verbs <- tokens_df_dep %>% 
+  filter(doc_id %in% male_ids,pos == 'VERB',relation =='ROOT') %>% 
+  unnest_tokens(word,lemma) %>% 
+  anti_join(stop_words) %>% 
+  count(word,sort = TRUE) %>% 
+  mutate(pronoun = 'he')
+
+```
+
+```{r}
+verb_log <- female_verbs %>% 
+  bind_rows(male_verbs) %>%
+  filter(word!='singe') %>% 
+  pivot_wider(names_from = pronoun,values_from = n,values_fill = list(n = 0)) %>% 
+  mutate(total = he + she,
+         he = (he+1)/sum(he + 1),
+         she = (she + 1)/sum(she + 1),
+         logratio = log2(she / he)) %>% 
+  filter(total > 15) %>% 
+  group_by(logratio < 0) %>%
+  top_n(15,abs(logratio)) %>% 
+  ungroup() %>% 
+  mutate(word = reorder(word,logratio),
+         nchars = nchar(as.character(word))) 
+  
+```
+
+
+```{r fig.height=10,fig.width=10}
+
+female_arrows <- tibble(
+  x1 = c(23),
+  x2 = c(23),
+  y1 = c(1),
+  y2 = c(1.8)
+)
+
+male_arrows <-  tibble(
+  x1 = c(9),
+  x2 = c(9),
+  y1 = c(-1),
+  y2 = c(-1.8)
+)
+
+female_color = '#ef476f'
+male_color = '#118ab2'
+
+
+g <- ggplot() +
+  geom_col(data = verb_log , aes(word, logratio, fill =  logratio < 0)) +
+  geom_text(
+    data = verb_log ,
+    aes(
+      label = word,
+      x = word,
+      y = if_else(logratio < 0, logratio + 0.03*nchars, logratio  - 0.03*nchars)
+    ),
+    color = 'white',
+    family = 'Rubik',
+    face = 'bold',
+    #label.padding = 0.05
+  ) +
+  
+  coord_flip() +
+  scale_y_continuous(limits = c(-2, 2)) +
+  scale_fill_manual(values = c(female_color, male_color)) +
+  ggplot2::annotate(
+    "text",
+    x = 24,
+    y = 1.5,
+    label = 'More Female',
+    family = 'Rubik',
+    color = female_color,
+    size = 5,
+    vjust = 0.5,
+    hjust = 0.6
+  ) +
+  ggplot2::annotate(
+    "text",
+    x = 10,
+    y = -1.34,
+    label = 'More Male',
+    family = 'Rubik',
+    color = male_color,
+    size = 5,
+    vjust = 0.5,
+    hjust = 0.6
+  ) +
+  
+  geom_curve(
+    data = female_arrows,
+    aes(
+      x = x1,
+      y = y1,
+      xend = x2,
+      yend = y2
+    ),
+    arrow = arrow(length = unit(0.07, "inch")),
+    size = 2,
+    color = female_color,
+    curvature = 0
+  ) +
+  
+  geom_curve(
+    data = male_arrows,
+    aes(
+      x = x1,
+      y = y1,
+      xend = x2,
+      yend = y2
+    ),
+    arrow = arrow(length = unit(0.07, "inch")),
+    size = 2,
+    color = male_color,
+    curvature = 0
+  ) +
+  labs(
+    title = 'She Lies, He Listens',
+    subtitle = 'This plot shows what common verbs were used to describe male and female characters in Friends',
+    fill = '',
+    caption =  'visualization: mcnakhaee.com'
+  ) +
+  theme_fivethirtyeight() +
+  theme(
+    text = element_text(family = 'Poppins Light', color = '#774936'),
+    plot.title = element_text(margin = margin(t = 10, b = 10)),
+    plot.subtitle = element_text(margin = margin(b = 20)),
+    axis.text.y = element_blank(),
+    plot.background = element_rect(fill = '#FFFAF0'),
+    panel.background = element_rect(fill = '#FFFAF0'),
+    legend.position = 'none',
+    panel.grid.major  = element_line(
+      color = '#eddcd2',
+      size = 0.5,
+      linetype = 'dashed'
+    ),
+    panel.grid.minor = element_line(
+      color = '#eddcd2',
+      size = 0.01,
+      linetype = 'dashed'
+    )
+  )
+
+g
+```
+
+
+# Save Image
+
+Save your image for sharing. Be sure to use the `#TidyTuesday` hashtag in your post on twitter! 
+
+```{r}
+
+# This will save your most recent plot
+ggsave(g,
+       width = 10,
+       height = 10,
+  filename = "My TidyTuesday Plot.png",
+  device = "png")
+
+```
