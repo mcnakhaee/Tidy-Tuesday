@@ -6,7 +6,7 @@ My submissions for the weekly Tidy Tuesday project
 
 ### Himalayan Peaks
 
-![](https://github.com/mcnakhaee/Tidy-Tuesday/blob/master/2020/Week%2039%20-%20Himalayan%20Peaks/peaks.png)
+![](https://github.com/mcnakhaee/Tidy-Tuesday/blob/master/2020/Week%2039%20-%20Himalayan%20Peaks/peaks_plot.png)
 
 ### Friends
 
