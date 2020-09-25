@@ -4,8 +4,13 @@ My submissions for the weekly Tidy Tuesday project
 
 ## 2020 Submissions
 
+### Himalayan Peaks
+
+![](https://github.com/mcnakhaee/Tidy-Tuesday/blob/master/2020/Week%2039%20-%20Himalayan%20Peaks/peaks.png)
+
 ### Friends
-![](https://github.com/mcnakhaee/Tidy-Tuesday/blob/master/2020/week%2037-Friends/My%20TidyTuesday%20Plot.png)
+
+![](https://github.com/mcnakhaee/Tidy-Tuesday/blob/master/2020/Week%2037%20-%20Friends/My%20TidyTuesday%20Plot.png)
 
 ### Palmer Penguins
 
