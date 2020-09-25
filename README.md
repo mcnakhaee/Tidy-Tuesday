@@ -4,6 +4,9 @@ My submissions for the weekly Tidy Tuesday project
 
 ## 2020 Submissions
 
+### Friends
+![](https://github.com/mcnakhaee/Tidy-Tuesday/blob/master/2020/week%2037-Friends/My%20TidyTuesday%20Plot.png)
+
 ### Palmer Penguins
 
 ![](https://github.com/mcnakhaee/Tidy-Tuesday/blob/master/2020/2020_07_28_Palmer_Penguins/My%20TidyTuesday%20Plot.png)
@@ -11,7 +14,7 @@ My submissions for the weekly Tidy Tuesday project
 ### Week 12 - The Office
 
 
-![](https://github.com/mcnakhaee/Tidy-Tuesday/blob/master/2020/The%20Office/000047.png)
+![](https://github.com/mcnakhaee/Tidy-Tuesday/blob/master/2020/Week%2012%20-%20The%20Office/000047.png)
 
 
 ### Week 3 - Passwords
