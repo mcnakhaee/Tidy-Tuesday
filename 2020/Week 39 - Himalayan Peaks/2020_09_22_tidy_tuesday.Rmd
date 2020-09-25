@@ -1,0 +1,320 @@
+---
+title: "TidyTemplate"
+date: 2020-09-23
+output: html_output
+---
+
+# TidyTuesday
+
+Join the R4DS Online Learning Community in the weekly #TidyTuesday event!
+Every week we post a raw dataset, a chart or article related to that dataset, and ask you to explore the data.
+While the dataset will be “tamed”, it will not always be tidy! As such you might need to apply various R for Data Science techniques to wrangle the data into a true tidy format.
+The goal of TidyTuesday is to apply your R skills, get feedback, explore other’s work, and connect with the greater #RStats community!
+As such we encourage everyone of all skills to participate!
+
+```{r setup, include=FALSE}
+
+knitr::opts_chunk$set(
+	echo = TRUE,
+	message = FALSE,
+	warning = FALSE
+)
+devtools::install_github("rensa/ggflags")
+library(tidyverse)
+library(tidytuesdayR)
+library(cowplot)
+library(ggtext)
+library(pdftools)
+
+myFont <- 'Rubik'
+windowsFonts(Rubik  = myFont)
+extrafont::loadfonts(device="win")
+myFont <- "Poppins Light"
+windowsFonts(`Poppins Light`  = myFont)
+```
+
+# Load the weekly Data
+
+Dowload the weekly data and make available in the `tt` object.
+
+```{r Load}
+
+tt <- tt_load("2020-09-22")
+
+```
+
+
+
+# Wrangle
+
+Explore the data and process it into a nice format for plotting! Access each dataset by name by using a dollarsign after the `tt` object and then the name of the data set.
+
+```{r fig.height=40,fig.width=35}
+
+create_df <- function(max_height = 8800,
+                           min_height = 7800) {
+  peaks <- tt$peaks %>%
+    inner_join(peaks_member_death, by = 'peak_id') %>%
+    arrange(desc(height_metres)) %>%
+    filter(height_metres > min_height,
+           height_metres < max_height,) %>%
+    mutate(
+      height_km = height_metres / 1000,
+      first_ascent_country = str_remove(first_ascent_country, 'W '),
+      first_ascent_country = str_replace_all(first_ascent_country, fixed(','), '\n'),
+      first_ascent_country = if_else(is.na(first_ascent_country), '-', first_ascent_country),
+      first_ascent_year = as.character(first_ascent_year),
+      first_ascent_year = if_else(is.na(first_ascent_year), 'Unclimbed', first_ascent_year),
+      height_metres = as.character(height_metres)
+    ) %>%
+    select(
+      peak_id,
+      peak_name,
+      height_km,
+      height_metres,
+      climbing_status,
+      first_ascent_year,
+      first_ascent_country,
+      total_death,
+      total_members
+    )
+  n_rows <- seq(1, nrow(peaks) * 2, 2)
+  print(n_rows)
+  for (i in n_rows) {
+    peaks <- peaks %>%
+      tibble::add_row(
+        peak_id   = NA,
+        peak_name = NA,
+        height_km = 6.5,
+        height_metres = NA,
+        climbing_status = NA,
+        first_ascent_year = NA,
+        first_ascent_country = NA,
+        total_death = NA,
+        total_members = NA,
+        .after = i
+      )
+    
+    
+  }
+  # add the first row
+  peaks <- peaks %>%
+    tibble::add_row(
+      peak_id   = NA,
+      peak_name = NA,
+      height_km = 6.5,
+      height_metres = NA,
+      climbing_status = NA,
+      first_ascent_year = NA,
+      first_ascent_country = NA,
+      total_death = NA,
+      total_members = NA,
+      .before = 1
+    )
+  
+  peaks <- peaks %>%
+    add_rownames() %>%
+    mutate(group = 1,
+           rowname = as.numeric(rowname))
+  peaks
+}
+
+first_row_df <- create_df(min_height = 8100, max_height = 8900)
+second_row_df <- create_df(min_height = 7750, max_height = 8100)
+third__row_df <- create_df(min_height = 7500, max_height = 7750)
+fourth_row_df <- create_df( min_height = 7351,  max_height  = 7500)
+fifth_row_df  <- create_df(min_height = 7200, max_height = 7350)
+sixth_row_df  <- create_df(min_height = 7100, max_height = 7200)
+seventh_row_df  <- create_df(min_height = 7000, max_height = 7100,)
+
+
+```
+## Data Visualization
+
+```{r main_plot}
+
+create_plot <- function(data, fill_color = '#a8dadc') {
+  ggplot() + geom_polygon(
+    data = data,
+    aes(x = rowname,
+        y = height_km,
+        group = group,),
+    alpha = 0.9,
+    fill = '#a8dadc'
+  ) +
+    geom_polygon(
+      data = data,
+      aes(
+        x = rowname + 0.2,
+        y = height_km,
+        group = group,
+      ),
+      alpha = 0.6,
+      fill = '#e63946'
+    ) +
+    
+    geom_text(
+      data = data %>%  filter(!is.na(peak_id)),
+      aes(x = rowname, y = 6.25 , label = peak_name),
+      size = 5.9,
+      nudge_y = -0.15,
+      family = 'Rubik',
+      color = 'gray90'
+    ) +
+    geom_text(
+      data = data %>%  filter(!is.na(peak_id)),
+      aes(x = rowname, y = height_km + 0.3 , label = height_metres),
+      size = 6.4,
+      family = 'Rubik',
+      color = 'gray90'
+    ) + geom_text(
+      data = data %>%  filter(!is.na(peak_id)),
+      aes(
+        x = rowname,
+        y = 5.7 ,
+        label = paste(total_death, total_members, sep = '/')
+      ),
+      size = 5.7,
+      #nudge_y = -0.1,
+      family = 'Rubik',
+      color = 'gray90'
+    ) +
+    geom_text(
+      data = data %>%  filter(!is.na(peak_id)),
+      aes(x = rowname, y = 5 , label = first_ascent_year),
+      #nudge_y = -0.1,
+      size = 5.7,
+      color = 'gray90'
+    ) +
+
+    geom_text(data = data %>%  filter(!is.na(peak_id)),aes(x = rowname, y = 4.2 ,label = first_ascent_country ),size = 5.5,color = 'gray90') +
+    scale_y_continuous(limits = c(3.8, 9.2)) +
+    theme_void() +
+    theme(
+      text = element_text(color = 'gray70'),
+      axis.text = element_blank(),
+      axis.ticks = element_blank(),
+      legend.position = 'none',
+      plot.background = element_rect(color = "grey14", fill = "grey14"),
+      panel.border = element_blank()
+    )
+}
+
+
+
+
+first_row_plot <- create_plot(first_row_df) 
+second_row_plot <- create_plot(second_row_df)
+third_row_plot <- create_plot(third__row_df)
+fourth_row_plot <- create_plot(fourth_row_df)
+fifth_row_plot <- create_plot(fifth_row_df)
+sixth_row_plot <- create_plot(sixth_row_df)
+seventh_row_plot <- create_plot(seventh_row_df) +
+  labs(caption = 'Visualization: mcnakhaee.com') +
+  theme(plot.caption =  element_text(size = 20,hjust = 0.5,margin = margin(t = 30,b = 30)))
+
+
+plt_main <- plot_grid(first_row_plot,second_row_plot,third_row_plot,fourth_row_plot,fifth_row_plot,sixth_row_plot,seventh_row_plot,nrow =7)
+plt_main
+#
+```
+
+
+
+
+```{r legend}
+
+legend <-  tibble(peak_id = c(NA,1,NA),peak_name='Peak Name',
+                 height_km = c(6.5,8,6.5),
+                 height_metres = c(NA,'Height in Metres',NA),
+                 rowname = c(1,2,3),
+                 first_ascent_year = c(NA,'First Ascent Year',NA),
+                 first_ascent_country = c(NA,'First Ascent Country',NA),
+                 total_death = c(NA,'Number of Deaths',NA),
+                 total_members = c(NA,'Number of Climbers',NA),
+                 group =c(1,1,1)) %>% 
+  create_plot()
+
+
+```
+
+```{r title}
+
+title <- ggplot() +
+  scale_x_continuous(expand = c(0, 0), limits = c(0, NA)) +
+  labs(
+    title = 'Highest Peaks in Himalaya',
+    subtitle = str_wrap(
+      'Himalaya is home to the tallest mountain in the world, some eight-thousander peaks and many more seven-thousander peaks. Most of them have been climbed but a few peaks remain to be conquered by humans. Everet has attracted more mountaineers and claimed more lives than any other mountain in Himalaya but its fatality rate is lower than some other peaks such as Annapurna I.',
+      width = 80
+    )
+  ) +
+  theme_void() +
+  theme(
+    plot.margin = margin(rep(0, 4)),
+    plot.title  = element_text(
+      color = 'gray70',
+      size = 60,
+      margin = margin(t = 40),
+      family = 'Poppins Light'
+    ),
+    plot.subtitle  = element_text(
+      color = 'gray70',
+      size = 35,
+      margin = margin(t = 40),
+      family = 'Poppins Light',
+      hjust = 0
+    ),
+    
+    axis.text = element_blank(),
+    axis.ticks = element_blank(),
+    legend.position = 'none',
+    plot.background = element_rect(color = "grey14", fill = "grey14")
+  )
+```
+
+# Visualize
+
+Using your processed dataset, create your unique visualization.
+
+```{r  fig.height=45,fig.width=34}
+
+ggdraw(plt_main, xlim = c(0, 1), ylim = c(0, 1.2)) +
+  draw_plot(legend, 0.9, 1.2, .16, .19, hjust = 1, vjust = 1) +
+  draw_plot(title, 0.05, 1.17, .6, .1, hjust = 0, vjust = 1) +
+  theme(
+    plot.background = element_rect(fill = 'gray14', color =  'gray14'),
+    panel.border = element_blank()
+    
+  ) +
+  panel_border(color = '#14213d', remove = TRUE) +
+  ggsave('test.pdf',
+         width = 34,
+         height = 40,
+         device = cairo_pdf)
+  
+
+```
+
+# Save Image
+
+Save your image for sharing. Be sure to use the `#TidyTuesday` hashtag in your post on twitter! 
+
+```{r save}
+ggdraw(plt_main, xlim = c(0, 1), ylim = c(0, 1.2)) +
+  draw_plot(legend, 0.9, 1.2, .16, .19, hjust = 1, vjust = 1) +
+  draw_plot(title, 0.05, 1.17, .6, .1, hjust = 0, vjust = 1) +
+  theme(
+    plot.background = element_rect(fill = 'gray14', color =  'gray14'),
+    panel.border = element_blank()
+    
+  ) +
+  panel_border(color = '#14213d', remove = TRUE) +
+  ggsave('peaks.pdf',
+         width = 34,
+         height = 42,
+         device = cairo_pdf)
+
+ pdf_convert(pdf = 'peaks.pdf', format = "png", dpi = 350, 
+             filenames = 'peaks.png')
+```
