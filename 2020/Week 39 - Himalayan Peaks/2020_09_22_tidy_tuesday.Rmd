@@ -79,7 +79,6 @@ create_df <- function(max_height = 8800,
       total_members
     )
   n_rows <- seq(1, nrow(peaks) * 2, 2)
-  print(n_rows)
   for (i in n_rows) {
     peaks <- peaks %>%
       tibble::add_row(
@@ -125,7 +124,7 @@ third__row_df <- create_df(min_height = 7500, max_height = 7750)
 fourth_row_df <- create_df( min_height = 7351,  max_height  = 7500)
 fifth_row_df  <- create_df(min_height = 7200, max_height = 7350)
 sixth_row_df  <- create_df(min_height = 7100, max_height = 7200)
-seventh_row_df  <- create_df(min_height = 7000, max_height = 7100,)
+seventh_row_df  <- create_df(min_height = 7000, max_height = 7100)
 
 
 ```
@@ -139,7 +138,7 @@ create_plot <- function(data, fill_color = '#a8dadc') {
     aes(x = rowname,
         y = height_km,
         group = group,),
-    alpha = 0.9,
+    alpha = 1,
     fill = '#a8dadc'
   ) +
     geom_polygon(
@@ -149,8 +148,8 @@ create_plot <- function(data, fill_color = '#a8dadc') {
         y = height_km,
         group = group,
       ),
-      alpha = 0.6,
-      fill = '#e63946'
+      alpha = 0.7,
+      fill = 'gray40'
     ) +
     
     geom_text(
@@ -215,7 +214,6 @@ seventh_row_plot <- create_plot(seventh_row_df) +
 
 
 plt_main <- plot_grid(first_row_plot,second_row_plot,third_row_plot,fourth_row_plot,fifth_row_plot,sixth_row_plot,seventh_row_plot,nrow =7)
-plt_main
 #
 ```
 
