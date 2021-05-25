@@ -103,23 +103,28 @@ survey_grouped_industry_gender <-
       industry  == 'Biotech/Pharma' ~ -50,
       TRUE ~ 50
     ),
+    
     y = case_when(
       gender == 'Man' ~ -22 ,
       gender == 'Woman' ~ -24,
       gender == 'Non-binary' ~ -26
+    ),
+        gender = case_when(
+      gender == 'Man' ~ 'Men' ,
+      gender == 'Woman' ~ 'Women',
+      gender == 'Non-binary' ~ 'Non-binary'
     )
   )
 
 
 ```
 
-
+Heavily inspired https://github.com/gkaramanis/tidytuesday/blob/febd0c736b2aacd506230e3fa4c02577ae551e86/2020-week08/food-consumption.R
 ```{r fig.height=10,fig.width=10}
 
 
-survey_grouped_industry %>%
+p <- survey_grouped_industry %>%
   ggplot() +
-  
   geom_rect(
     aes(
       xmin = -302,
@@ -158,7 +163,7 @@ survey_grouped_industry %>%
     check_overlap = TRUE
   ) +
   geom_text(
-    data = survey_grouped_industry_gender %>% filter(gender == 'Man'),
+    data = survey_grouped_industry_gender %>% filter(gender == 'Men'),
     aes(
       x = x + 50 ,
       y = -20,
@@ -203,7 +208,7 @@ survey_grouped_industry %>%
     x = 400,
     y = 17 ,
     hjust = 0.5,
-    label = str_to_title("highest paying industries\n for managers"),
+    label = str_to_title("highest paying industries\nfor managers"),
     family = 'Oswald',
     color = "white",
     size = 11
@@ -244,7 +249,7 @@ survey_grouped_industry %>%
     panel.grid.minor.y = element_blank(),
     plot.margin = margin(20, 20, 20, 20),
     legend.position = 'none'
-  )
+  ) 
 
 ```
 
