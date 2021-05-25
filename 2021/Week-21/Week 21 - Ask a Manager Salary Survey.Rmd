@@ -1,0 +1,253 @@
+---
+title: "R Notebook"
+output: html_notebook
+---
+
+```{r}
+library(tidyverse)
+library(colorspace)
+library(ggforce)
+library(showtext)
+library(ggfx)
+showtext_auto()
+font_add_google("Oswald", "Oswald")
+pal <- wesanderson::wes_palette("Zissou1", 6, type = "continuous")
+
+
+```
+
+```{r}
+survey <-
+  readr::read_csv(
+    'https://raw.githubusercontent.com/rfordatascience/tidytuesday/master/data/2021/2021-05-18/survey.csv'
+  )
+
+
+survey <- survey %>%
+  mutate(
+    industry = case_when(
+      str_detect(industry, 'Restaurant') |
+        str_detect(industry, 'Hospitality') ~ 'Restaurants & Hospitality',
+      str_detect(industry, 'Education') ~ 'Education',
+      str_detect(industry, 'Health') ~ 'Healthcare',
+      str_detect(industry, 'Retail') ~ 'Retail',
+      str_detect(industry, 'Biotech') |
+        str_detect(industry, 'Pharmaceutical') ~ 'Biotech/Pharma',
+      str_detect(industry, 'Accountaning') |
+        str_detect(industry, 'Finance') ~ 'Financial',
+      str_detect(industry, 'Engineering')  ~ 'Engineering',
+      str_detect(industry, 'Business')  ~ 'Business',
+      str_detect(industry, 'Marketing')  ~ 'Marketing',
+      str_detect(industry, 'Computing')  ~ 'Technology',
+      str_detect(industry, 'Research') |
+        str_detect(industry, 'Science') |
+        str_detect(industry, 'Academia') |
+        str_detect(industry, 'Academy')  ~ 'Science/Research',
+      str_detect(industry, 'Librar') ~ 'Library',
+      str_detect(industry, 'Oil') ~ 'Oil & Gas',
+      str_detect(industry, 'Sport') ~ 'Sport',
+      TRUE ~ industry
+    )
+  ) 
+```
+```{r}
+survey_grouped_industry <- survey %>%
+  filter(currency  == 'USD',!is.na(industry),
+         !is.na(gender),
+         str_detect(country, 'US')) %>%
+  group_by(industry) %>%
+  summarise(n_ = n(),
+            mean_salary = mean(annual_salary)) %>%
+  ungroup() %>%
+  arrange(-mean_salary) %>%
+  filter(n_ > 10) %>%
+  mutate(rank = 1:nrow(.)) %>%
+  filter(industry %in% top_n(., 10, mean_salary)$industry) %>%
+  arrange(mean_salary) %>%
+  
+  mutate(n = -4:5) %>%
+  rowwise() %>%
+  mutate(x = list(c(-10, 50, 50, -10)),
+         y = list(c(n * 4 - 1.4, n * 2 - 0.7, n * 2 + 0.7, n * 4 + 1.4))) %>%
+  unnest(cols = c(x, y))
+
+top_industries <- unique(survey_grouped_industry$industry)
+
+survey_grouped_industry_gender <- survey %>%
+  filter(currency  == 'USD',!is.na(industry),
+         !is.na(gender),
+         str_detect(country, 'US')) %>%
+  group_by(industry, gender) %>%
+  summarise(n = n(),
+            mean_salary = mean(annual_salary)) %>%
+  ungroup() %>%
+  
+  filter(industry %in% top_industries) %>%
+  
+  arrange(desc(n))
+
+survey_grouped_industry_gender <-
+  survey_grouped_industry_gender %>%
+  filter(gender %in% c('Man', 'Woman', 'Non-binary')) %>%
+  mutate(
+    x = case_when(
+      industry  == 'Technology' ~ -250,
+      industry  == 'Engineering' ~ 250,
+      industry  == 'Financial' ~ 550,
+      industry  == 'Healthcare' ~ 450,
+      industry  == 'Business' ~ 150,
+      industry  == 'Law' ~ -150,
+      industry  == 'Marketing' ~ 350,
+      industry  == 'Insurance' ~ 750,
+      industry  == 'Entertainment' ~ 650,
+      industry  == 'Biotech/Pharma' ~ -50,
+      TRUE ~ 50
+    ),
+    y = case_when(
+      gender == 'Man' ~ -22 ,
+      gender == 'Woman' ~ -24,
+      gender == 'Non-binary' ~ -26
+    )
+  )
+
+
+```
+
+
+```{r fig.height=10,fig.width=10}
+
+
+survey_grouped_industry %>%
+  ggplot() +
+  
+  geom_rect(
+    aes(
+      xmin = -302,
+      ymin = n * 4 - 1.4,
+      xmax = -10,
+      ymax = n * 4 + 1.4
+    ),
+    fill = "white",
+    color = NA
+  ) +
+  geom_polygon(aes(x, y, group = n), fill = "white", color = NA) +
+  geom_rect(
+    aes(
+      xmin = 50,
+      ymin = n * 2 - .7,
+      xmax = log(mean_salary) * 60,
+      ymax = n * 2 + .7
+    ),
+    fill = "white",
+    color = NA
+  ) +
+  geom_text(
+    aes(-288, n * 4, label = paste(rank, industry, sep = '. ')),
+    family = "Oswald",
+    color = "#023047",
+    hjust = 0,
+    size = 5.5,
+    check_overlap = TRUE
+  ) +
+  geom_text(
+    aes(log(mean_salary) * 58, n * 2, label = scales::dollar(round(mean_salary))),
+    family = "Oswald",
+    color = "#023047",
+    hjust = 1,
+    size = 4,
+    check_overlap = TRUE
+  ) +
+  geom_text(
+    data = survey_grouped_industry_gender %>% filter(gender == 'Man'),
+    aes(
+      x = x + 50 ,
+      y = -20,
+      label = str_wrap(industry, 15)
+    ),
+    size = 4,
+    hjust = 0.5,
+    family = 'Oswald',
+    color = 'white'
+  ) +
+  
+  geom_text(
+    data = survey_grouped_industry_gender %>% filter(industry == 'Marketing') ,
+    aes(x = -330 ,
+        y = y,
+        label = gender),
+    size = 4,
+    hjust = 0,
+    family = 'Oswald',
+    color = 'white'
+  ) +
+  geom_text(
+    data = survey_grouped_industry_gender,
+    aes(
+      x = x + 50 ,
+      y = y ,
+      label = paste(scales::dollar(round(mean_salary / 1000)), 'k', sep = ''),
+      color = mean_salary
+    ),
+    hjust = 0.5,
+    family = 'Oswald'
+  ) +
+  geom_segment(aes(
+    x = -330,
+    y = -18,
+    xend = 770,
+    yend = -18
+  ), color = 'white') +
+  scale_color_stepsn(colors = c('#d90429', '#ffb703', '#023047', '#219ebc', '#8ecae6')) +
+  annotate(
+    "text",
+    x = 400,
+    y = 17 ,
+    hjust = 0.5,
+    label = str_to_title("highest paying industries\n for managers"),
+    family = 'Oswald',
+    color = "white",
+    size = 11
+  ) +
+  #annotate("text", x = 400, y = 13 , hjust = 0, label = 'The average salary of a manager \n broken down by industry and gender', family = 'Oswald', color = "white", size = 4) +
+  annotate(
+    "text",
+    x = -325,
+    y = -17 ,
+    hjust = 0,
+    label = "Source: Ask A Manager Salary Survey 2021-Visualization: mcnakhaee",
+    family = 'Oswald',
+    color = "white",
+    size = 4,
+    angle = 90
+  ) +
+  annotate(
+    "text",
+    x = 100,
+    y = -26 ,
+    hjust = 0.5,
+    label = 'N/A',
+    family = 'Oswald',
+    color = "white",
+    size = 4
+  ) +
+  
+  theme_minimal(base_family = "Oswald") +
+  theme(
+    axis.title.x = element_blank(),
+    axis.text.x = element_blank(),
+    axis.title.y = element_blank(),
+    axis.text.y = element_blank(),
+    plot.background = element_rect(fill = '#023047'),
+    panel.grid.minor.x = element_blank(),
+    panel.grid.major.x = element_blank(),
+    panel.grid.major.y = element_blank(),
+    panel.grid.minor.y = element_blank(),
+    plot.margin = margin(20, 20, 20, 20),
+    legend.position = 'none'
+  )
+
+```
+
+
+
+
