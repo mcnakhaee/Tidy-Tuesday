@@ -1,0 +1,98 @@
+---
+title: "R Notebook"
+output: html_notebook
+---
+
+```{r}
+library(tidyverse)
+library(janitor)
+library(sf)
+library(biscale)
+library(cowplot)
+library(showtext)
+font_add_google("Montserrat", "Montserrat")
+font <- 'Montserrat'
+
+showtext_auto()
+broadband <- readr::read_csv('https://raw.githubusercontent.com/rfordatascience/tidytuesday/master/data/2021/2021-05-11/broadband.csv') %>% 
+  clean_names() %>% 
+  mutate(
+    across(4:5, as.numeric),
+    county_name = str_remove(county_name, " County| Parish")
+    ) %>% 
+  rename(state = st)
+
+plot_data <- broadband %>% 
+  filter(!is.na(broadband_usage),!is.na(broadband_availability_per_fcc)) %>% 
+bi_class( x = broadband_availability_per_fcc, y = broadband_usage, style = "quantile", dim = 3) 
+
+#borrowd from https://github.com/gkaramanis/tidytuesday/blob/master/2021/2021-week19/broadband.R
+usa <- read_sf("data/c_10nv20/c_10nv20.shp") %>% 
+  clean_names() %>% 
+  rename(county_name = countyname) %>% 
+  st_simplify(preserveTopology = TRUE, dTolerance = 0.01) %>% 
+  left_join(plot_data, by = c("state","county_name" )) %>% 
+  filter(!is.na(bi_class))
+
+
+
+legend <- bi_legend(
+  pal = "DkCyan",
+  dim = 3,
+  xlab = "Higher Availability",
+  ylab = "Higher Usage ",
+  size = 6
+) +
+  theme(
+    plot.background = element_rect(fill = "grey97", color = NA),
+    panel.background = element_rect(fill = "grey97", color = NA),
+    axis.title = element_text(family = font)
+  )
+
+map <- ggplot() +
+  geom_sf(
+    data = usa,
+    aes(geometry = geometry, fill = bi_class),
+    alpha = 0.5,
+    color = "white"
+  ) +
+  bi_scale_fill(pal = "DkCyan", dim = 3) +
+    annotate("text", x = -106, y = 54, label = toupper("broadband access Across the US"), family = font, size = 6, lineheight = 0.9, hjust = .5) +
+  coord_sf() +
+  theme_void() +
+  theme(
+    plot.title = element_text(
+      family = 'Lato',
+      margin = margin(t = 40, l = 0),
+      size = 10,
+      hjust = 0.5
+    ),
+    legend.position = 'none',
+    plot.background = element_rect(fill = "grey97", color = NA),
+    panel.background = element_rect(fill = "grey97", color = NA)
+    
+  )
+
+plot <- ggdraw() +
+  draw_plot(map, 0, 0, 1, 1) +
+  draw_plot(
+    legend,
+    x = 0.04,
+    y = .09,
+    width = 0.25,
+    height = 0.25
+  ) +
+  theme(panel.background = element_rect(fill = "grey97", color = NA))
+
+
+ggsave('', plot, width = 16, height = 5)
+
+```
+
+```{r}
+carto_broadband_availability_per_fcc <- usa %>% 
+  st_transform(crs = "+proj=robin") %>% 
+cartogram_cont('broadband_availability_per_fcc', itermax = 150)
+```
+
+
